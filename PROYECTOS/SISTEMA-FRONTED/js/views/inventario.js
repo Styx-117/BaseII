@@ -24,10 +24,6 @@ export async function renderInventario(container) {
                                 <option value="">Seleccione una categoría...</option>
                             </select>
                             <textarea id="descripcion" class="form-control mb-2" placeholder="Descripción"></textarea>
-
-                            <label class="form-label text-muted small mt-2">Imagen del producto</label>
-                            <input type="file" id="imagen" class="form-control mb-2" accept="image/*">
-                            
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -60,38 +56,29 @@ export async function renderInventario(container) {
     document.getElementById('form-producto').addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = document.getElementById('producto-id').value;
-        
-        // 1. Creamos un FormData en lugar de un JSON
-        const formData = new FormData();
-        formData.append('nombre', document.getElementById('nombre').value);
-        formData.append('precio', document.getElementById('precio').value);
-        formData.append('stock_actual', document.getElementById('stock').value);
-        formData.append('categoria_id', document.getElementById('categoria_id').value);
-        formData.append('descripcion', document.getElementById('descripcion').value);
-
-        // 2. Capturamos la imagen desde el explorador de archivos
-        const archivoImagen = document.getElementById('imagen').files[0];
-        if (archivoImagen) {
-            formData.append('imagen', archivoImagen); // 'imagen' es el nombre que recibe multer en tu backend
-        }
+        const data = {
+            nombre: document.getElementById('nombre').value,
+            precio: parseFloat(document.getElementById('precio').value),
+            stock_actual: parseInt(document.getElementById('stock').value),
+            categoria_id: parseInt(document.getElementById('categoria_id').value),
+            descripcion: document.getElementById('descripcion').value
+        };
 
         try {
-            // 3. Enviamos el FormData a tu API
             if (id) {
-                await api.put(`/productos/${id}`, formData); 
+                await api.put(`/productos/${id}`, data); 
             } else {
-                await api.post('/productos', formData);
+                await api.post('/productos', data);
             }
             
-            // 4. Cerramos el modal y recargamos
             const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalProducto'));
             modal.hide();
             
-            e.target.reset(); // Limpia el formulario (incluyendo el input file)
+            e.target.reset();
             document.getElementById('producto-id').value = ''; 
             await cargarTabla(container);
         } catch (err) { 
-            alert("Error al guardar: " + err.message); 
+            alert("Error: " + err.message); 
         }
     });
 }
@@ -110,22 +97,12 @@ async function cargarCategorias() {
 async function cargarTabla(container) {
     try {
         const productos = await api.get('/productos');
-        
         const tbody = document.getElementById('tabla-productos');
         tbody.innerHTML = productos.map(p => `
             <tr>
-                <!-- NUEVO TD EXCLUSIVO PARA LA IMAGEN -->
-                <td>
-                    <img src="${p.imagen || 'https://via.placeholder.com/50'}" alt="${p.nombre}" 
-                    style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd;">
-                </td>
-                
-                <!-- LOS DEMÁS DATOS -->
                 <td>${p.nombre}</td>
                 <td>S/ ${parseFloat(p.precio).toFixed(2)}</td>
                 <td>${p.stock_actual}</td>
-                
-                <!-- EL TD DE LAS ACCIONES QUEDA SOLO CON LOS BOTONES -->
                 <td>
                     <button class="btn btn-sm btn-outline-primary btn-editar" 
                             data-id="${p.id}" data-nombre="${p.nombre}" 

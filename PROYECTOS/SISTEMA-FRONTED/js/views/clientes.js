@@ -1,6 +1,24 @@
 import { api } from '../api.js';
+import { getUser } from '../auth.js'; 
 
 export async function renderClientes(container) {
+    const user = getUser();
+
+    if (user.rol === 'ALMACENERO') {
+        container.innerHTML = `
+            <div class="d-flex justify-content-center align-items-center h-100 mt-5">
+                <div class="alert alert-danger shadow-sm text-center p-4" style="max-width: 400px;">
+                    <i class="fas fa-lock fs-1 text-danger mb-3"></i>
+                    <h5 class="fw-bold">Acceso Restringido</h5>
+                    <p class="mb-0">Tu rol de almacén no tiene los permisos necesarios para acceder a la gestión comercial de clientes.</p>
+                </div>
+            </div>
+        `;
+        return; 
+    }
+
+    const esAdmin = user.rol === 'ADMIN';
+
     container.innerHTML = `
         <div class="d-flex justify-content-between mb-4 align-items-center">
             <h3><i class="fas fa-users text-warning me-2"></i> Gestión de Clientes</h3>
@@ -68,7 +86,7 @@ export async function renderClientes(container) {
         </div>
     `;
 
-    await cargarTablaClientes(container);
+    await cargarTablaClientes(container, esAdmin);
 
     document.getElementById('btn-nuevo-cliente').addEventListener('click', () => {
         document.getElementById('form-cliente').reset();
@@ -102,20 +120,22 @@ export async function renderClientes(container) {
             }
             
             bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCliente')).hide();
-            await cargarTablaClientes(container);
+            await cargarTablaClientes(container, esAdmin);
         } catch (err) {
             alert("Error al guardar: " + err.message);
         }
     });
 }
 
-async function cargarTablaClientes(container) {
+async function cargarTablaClientes(container, esAdmin) {
     try {
-        const clientes = await api.get('/clientes');
+        const clientesBD = await api.get('/clientes');
         const tbody = document.getElementById('tabla-clientes');
         
+        const clientes = esAdmin ? clientesBD : clientesBD.filter(c => c.activo === true);
+        
         if (clientes.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay clientes registrados</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay clientes para mostrar</td></tr>';
             return;
         }
 
@@ -142,10 +162,13 @@ async function cargarTablaClientes(container) {
                             data-telefonos="${c.telefonos_secundarios ? c.telefonos_secundarios.join(', ') : ''}">
                         <i class="fas fa-edit"></i>
                     </button>
+                    
+                    ${esAdmin ? `
                     <button class="btn btn-sm ${c.activo ? 'btn-outline-danger' : 'btn-outline-success'} btn-toggle-cliente" 
                             data-id="${c.id}" data-estado="${c.activo}">
                         <i class="fas ${c.activo ? 'fa-ban' : 'fa-check'}"></i>
                     </button>
+                    ` : ''}
                 </td>
             </tr>
             `;
@@ -153,27 +176,44 @@ async function cargarTablaClientes(container) {
 
         document.querySelectorAll('.btn-editar-cliente').forEach(btn => {
             btn.addEventListener('click', () => {
+                const inputNombre = document.getElementById('nombre_cliente');
+                const inputDocumento = document.getElementById('documento_cliente');
+
                 document.getElementById('cliente-id').value = btn.dataset.id;
-                document.getElementById('nombre_cliente').value = btn.dataset.nombre;
-                document.getElementById('documento_cliente').value = btn.dataset.documento;
+                inputNombre.value = btn.dataset.nombre;
+                inputDocumento.value = btn.dataset.documento;
                 document.getElementById('email_cliente').value = btn.dataset.email;
                 document.getElementById('telefonos_cliente').value = btn.dataset.telefonos;
+                
+                if (!esAdmin) {
+                    inputNombre.readOnly = true;
+                    inputDocumento.readOnly = true;
+                    inputNombre.classList.add('bg-light');
+                    inputDocumento.classList.add('bg-light');
+                } else {
+                    inputNombre.readOnly = false;
+                    inputDocumento.readOnly = false;
+                    inputNombre.classList.remove('bg-light');
+                    inputDocumento.classList.remove('bg-light');
+                }
                 
                 document.getElementById('modal-cliente-titulo').innerText = 'Editar Cliente';
                 bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCliente')).show();
             });
         });
 
-        document.querySelectorAll('.btn-toggle-cliente').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const id = btn.dataset.id;
-                const estadoActual = btn.dataset.estado === 'true';
-                if (confirm(`¿Deseas ${estadoActual ? 'desactivar' : 'activar'} a este cliente?`)) {
-                    await api.patch(`/clientes/${id}/estado`, { activo: !estadoActual });
-                    await cargarTablaClientes(container);
-                }
+        if (esAdmin) {
+            document.querySelectorAll('.btn-toggle-cliente').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const id = btn.dataset.id;
+                    const estadoActual = btn.dataset.estado === 'true';
+                    if (confirm(`¿Deseas ${estadoActual ? 'desactivar' : 'activar'} a este cliente?`)) {
+                        await api.patch(`/clientes/${id}/estado`, { activo: !estadoActual });
+                        await cargarTablaClientes(container, esAdmin); 
+                    }
+                });
             });
-        });
+        }
 
     } catch (err) {
         document.getElementById('tabla-clientes').innerHTML = `<tr><td colspan="6" class="text-danger text-center">Error al cargar clientes</td></tr>`;

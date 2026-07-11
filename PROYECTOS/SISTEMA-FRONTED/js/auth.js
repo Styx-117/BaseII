@@ -1,16 +1,19 @@
-export const login = async (email, password) => {
-    const response = await fetch('https://baseii.onrender.com/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-    });
+import { api } from './api.js';
 
-    if (!response.ok) throw new Error('Credenciales inválidas');
+export async function login(email, password) {
+    try {
+        const data = await api.post('/auth/login', { email, password });
+        
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user)); 
+        
+        return data.user;
+    } catch (error) {
+        throw error; 
+    }
+}
 
-    const data = await response.json();
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.usuario));
-    return data;
-};
-
-export const getUser = () => JSON.parse(localStorage.getItem('user'));
+export function getUser() {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+}

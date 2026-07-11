@@ -1,3 +1,4 @@
+import { api } from './api.js';
 import { getUser, login } from './auth.js';
 import { renderInventario } from './views/inventario.js';
 import { renderUsuarios } from './views/usuarios.js'; 
@@ -11,7 +12,7 @@ function router() {
     const user = getUser();
     const token = localStorage.getItem('token');
 
-    if (user) {
+    if (token && user) {
         renderDashboard(user);
     } else {
         renderLogin();
@@ -55,6 +56,10 @@ function renderDashboard(user) {
     const colorAvatar = esMujer ? '#e83e8c' : '#0d6efd'; 
     const iconoAvatar = esMujer ? 'fas fa-female' : 'fas fa-user'; 
 
+    const esAdmin = user.rol === 'ADMIN';
+    const esCajero = user.rol === 'CAJERO';
+    const esAlmacen = user.rol === 'ALMACENERO';
+
     app.innerHTML = `
         <div class="d-flex bg-light vh-100 overflow-hidden">
             <nav class="sidebar p-3 overflow-auto" style="min-width: 260px;">
@@ -69,6 +74,7 @@ function renderDashboard(user) {
                         </a>
                     </li>
                     
+                    ${(esAdmin || esCajero) ? `
                     <li class="nav-item mt-3">
                         <a href="#" class="nav-link text-muted small text-uppercase fw-bold">Comercial</a>
                         <ul class="nav flex-column ps-3 mt-2">
@@ -76,7 +82,9 @@ function renderDashboard(user) {
                             <li><a href="#clientes" class="nav-link"><span class="dot bg-warning"></span> Clientes</a></li>
                         </ul>
                     </li>
+                    ` : ''}
 
+                    ${(esAdmin || esAlmacen) ? `
                     <li class="nav-item mt-3">
                         <a href="#" class="nav-link text-muted small text-uppercase fw-bold">Logística</a>
                         <ul class="nav flex-column ps-3 mt-2">
@@ -84,13 +92,16 @@ function renderDashboard(user) {
                             <li><a href="#movimientos" class="nav-link"><span class="dot bg-info"></span> Kardex </a></li>
                         </ul>
                     </li>
+                    ` : ''}
 
+                    ${esAdmin ? `
                     <li class="nav-item mt-3">
                         <a href="#" class="nav-link text-muted small text-uppercase fw-bold">Administración</a>
                         <ul class="nav flex-column ps-3 mt-2">
                             <li><a href="#usuarios" class="nav-link"><span class="dot bg-danger"></span> Usuarios</a></li>
                         </ul>
                     </li>
+                    ` : ''}
                     
                     <li class="nav-item mt-auto pt-5">
                         <button id="logout" class="btn btn-outline-light btn-sm w-100 mt-5">
@@ -142,90 +153,146 @@ function renderDashboard(user) {
         </div>
     `;
 
-    const renderHomeCards = () => {
+    const renderHomeCards = async () => {
         const viewContent = document.getElementById('view-content');
         viewContent.innerHTML = `
-            <h4 class="mb-4 text-dark fw-bold">Dashboard</h4>
+            <h4 class="mb-4 text-dark fw-bold">Resumen del Sistema</h4>
             <div class="row g-4 mb-4">
-                <div class="col-md-4">
-                    <div class="card p-4 border-0 shadow-sm">
+                <div class="col-md-6 col-xl-4">
+                    <div class="card p-4 border-0 shadow-sm h-100">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="text-muted mb-1 small text-uppercase">Total Users</h6>
-                                <h3 class="fw-bold mb-0">20,000</h3>
+                                <h6 class="text-muted mb-1 small text-uppercase fw-bold">Personal Activo</h6>
+                                <h3 class="fw-bold mb-0" id="dash-usuarios"><i class="fas fa-spinner fa-spin fs-5 text-muted"></i></h3>
                             </div>
-                            <div class="icon-box bg-primary-soft text-primary" style="width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                            <div class="icon-box bg-primary text-white shadow-sm" style="width: 55px; height: 55px; border-radius: 15px; display: flex; align-items: center; justify-content: center;">
                                 <i class="fas fa-users fs-4"></i>
                             </div>
-                        </div>
-                        <div class="mt-3">
-                            <span class="text-success small fw-bold">▲ +5,000</span>
-                            <span class="text-muted small"> Last 30 days</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-md-4">
-                    <div class="card p-4 border-0 shadow-sm">
+                <div class="col-md-6 col-xl-4">
+                    <div class="card p-4 border-0 shadow-sm h-100">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 class="text-muted mb-1 small text-uppercase">Total Income</h6>
-                                <h3 class="fw-bold mb-0">$42,000</h3>
+                                <h6 class="text-muted mb-1 small text-uppercase fw-bold">Ingresos Totales</h6>
+                                <h3 class="fw-bold mb-0 text-success" id="dash-ingresos"><i class="fas fa-spinner fa-spin fs-5 text-muted"></i></h3>
                             </div>
-                            <div class="icon-box bg-success-soft text-success" style="width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-wallet fs-4"></i>
+                            <div class="icon-box bg-success text-white shadow-sm" style="width: 55px; height: 55px; border-radius: 15px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-hand-holding-usd fs-4"></i>
                             </div>
-                        </div>
-                        <div class="mt-3">
-                            <span class="text-success small fw-bold">▲ +$20,000</span>
-                            <span class="text-muted small"> Last 30 days</span>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card border-0 shadow-sm p-4">
+                        <h6 class="fw-bold text-muted mb-4">Ingresos de los últimos 7 días</h6>
+                        <canvas id="ventasChart" height="100"></canvas>
+                    </div>
+                </div>
+            </div>
         `;
+
+        try {
+            const stats = await api.get('/dashboard/stats');
+            
+            document.getElementById('dash-usuarios').innerText = stats.usuarios;
+            document.getElementById('dash-ingresos').innerText = 'S/ ' + stats.ingresos.toFixed(2);
+
+            const etiquetasFechas = stats.grafica.map(item => {
+                const date = new Date(item.fecha);
+                return date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' });
+            });
+            const totalesSoles = stats.grafica.map(item => parseFloat(item.total_dia));
+
+            const ctx = document.getElementById('ventasChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar', 
+                data: {
+                    labels: etiquetasFechas.length > 0 ? etiquetasFechas : ['Sin datos recientes'],
+                    datasets: [{
+                        label: 'Ventas (S/)',
+                        data: totalesSoles.length > 0 ? totalesSoles : [0],
+                        backgroundColor: '#0d6efd',
+                        borderRadius: 6 
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ' S/ ' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            grid: { borderDash: [5, 5] } 
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+        } catch (err) {
+
+            console.error("Error cargando dashboard:", err);
+            document.getElementById('dash-usuarios').innerText = '-';
+            document.getElementById('dash-ingresos').innerText = '-';
+        }
     };
 
     const viewContent = document.getElementById('view-content');
     
     renderHomeCards();
 
-    document.querySelector('a[href="#usuarios"]').addEventListener('click', (e) => {
+    document.querySelector('a[href="#usuarios"]')?.addEventListener('click', (e) => {
         e.preventDefault();
         document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
         e.currentTarget.classList.add('active');
         renderUsuarios(viewContent);
     });
 
-    document.querySelector('a[href="#ventas"]').addEventListener('click', (e) => {
+    document.querySelector('a[href="#ventas"]')?.addEventListener('click', (e) => {
         e.preventDefault();
         document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
         e.currentTarget.classList.add('active');
         renderVentas(viewContent);
     });
 
-    document.querySelector('a[href="#movimientos"]').addEventListener('click', (e) => {
+    document.querySelector('a[href="#movimientos"]')?.addEventListener('click', (e) => {
         e.preventDefault();
         document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
         e.currentTarget.classList.add('active');
         renderMovimientos(viewContent);
     });
 
-    document.querySelector('a[href="#inventario"]').addEventListener('click', (e) => {
+    document.querySelector('a[href="#inventario"]')?.addEventListener('click', (e) => {
         e.preventDefault();
         document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
         e.currentTarget.classList.add('active');
         renderInventario(viewContent);
     });
     
-    document.querySelector('a[href="#clientes"]').addEventListener('click', (e) => {
+    document.querySelector('a[href="#clientes"]')?.addEventListener('click', (e) => {
         e.preventDefault();
         document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
         e.currentTarget.classList.add('active');
         renderClientes(viewContent);
     });
 
-    document.querySelector('a[href="#dashboard"]').addEventListener('click', (e) => {
+    document.querySelector('a[href="#dashboard"]')?.addEventListener('click', (e) => {
         e.preventDefault();
         document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
         e.currentTarget.classList.add('active');  
