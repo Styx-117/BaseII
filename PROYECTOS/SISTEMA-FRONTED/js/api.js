@@ -1,4 +1,4 @@
-const BASE_URL = 'https://baseii.onrender.com/api';
+const BASE_URL = 'https://baseii.onrender.com';
 
 async function customFetch(endpoint, options = {}) {
     const token = localStorage.getItem('token');
