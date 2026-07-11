@@ -19,6 +19,15 @@ app.use('/api/auditoria', require('./routes/auditoriaRoutes'));
 app.use('/api/auth', require('./routes/authRoutes'));
 
 
+//images
+
+app.use('/api/kardex', require('./routes/kardexRoutes'));
+app.use('/api/auditoria', require('./routes/auditoriaRoutes'));
+app.use('/api/auth', require('./routes/authRoutes'));
+
+app.use('/api/imagenes', require('./routes/imagenRoutes'));
+
+
 app.get('/', (req, res) => {
   res.json({ mensaje: 'API del Sistema de Ventas e Inventario corriendo correctamente' });
 });
