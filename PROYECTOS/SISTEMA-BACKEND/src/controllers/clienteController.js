@@ -2,7 +2,7 @@ const pool = require('../config/db');
 
 const obtenerClientes = async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM clientes WHERE activo = TRUE ORDER BY id ASC');
+        const result = await pool.query('SELECT * FROM clientes ORDER BY id DESC');
         res.json(result.rows);
     } catch (error) {
         console.error(error);
@@ -27,15 +27,39 @@ const crearCliente = async (req, res) => {
     }
 };
 
-const eliminarCliente = async (req, res) => {
+const actualizarCliente = async (req, res) => {
     const { id } = req.params;
+    const { nombre, documento, email, telefonos_secundarios = [] } = req.body;
     try {
-        await pool.query('UPDATE clientes SET activo = FALSE WHERE id = $1', [id]);
-        res.json({ mensaje: 'Cliente eliminado correctamente' });
+        const result = await pool.query(
+            'UPDATE clientes SET nombre = $1, documento = $2, email = $3, telefonos_secundarios = $4 WHERE id = $5 RETURNING *',
+            [nombre, documento, email, telefonos_secundarios, id]
+        );
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Cliente no encontrado' });
+        }
+        
+        res.json(result.rows[0]);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Error al eliminar cliente' });
+        if (error.code === '23505') {
+            return res.status(400).json({ error: 'El documento ingresado ya pertenece a otro cliente' });
+        }
+        res.status(500).json({ error: 'Error al actualizar cliente' });
     }
 };
 
-module.exports = { obtenerClientes, crearCliente, eliminarCliente };
+const cambiarEstadoCliente = async (req, res) => {
+    const { id } = req.params;
+    const { activo } = req.body; 
+    try {
+        await pool.query('UPDATE clientes SET activo = $1 WHERE id = $2', [activo, id]);
+        res.json({ mensaje: `Cliente ${activo ? 'activado' : 'desactivado'} correctamente` });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error al cambiar el estado del cliente' });
+    }
+};
+
+module.exports = { obtenerClientes, crearCliente, actualizarCliente, cambiarEstadoCliente };
