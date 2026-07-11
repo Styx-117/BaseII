@@ -61,4 +61,27 @@ const actualizarPrecio = async (req, res) => {
 
 };
 
-module.exports = { obtenerProductos, crearProducto, eliminarProducto, actualizarPrecio };
+const actualizarProducto = async (req, res) => {
+    const { id } = req.params;
+    const { nombre, descripcion, precio, stock_actual, categoria_id, etiquetas } = req.body;
+
+    try {
+        const result = await pool.query(
+            'UPDATE productos SET nombre = $1, descripcion = $2, precio = $3, stock_actual = $4, categoria_id = $5, etiquetas = $6 WHERE id = $7 RETURNING *',
+            [nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, id]
+        );
+        
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Producto no encontrado' });
+        }
+        res.json({ 
+            mensaje: 'Producto actualizado con éxito',
+            producto: result.rows[0]
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error al actualizar el producto' });
+    }
+};
+
+module.exports = { obtenerProductos, crearProducto, eliminarProducto, actualizarPrecio, actualizarProducto };

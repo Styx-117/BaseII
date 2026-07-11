@@ -6,5 +6,6 @@ router.get('/', obtenerProductos);
 router.post('/', crearProducto);
 router.delete('/:id', eliminarProducto);
 router.patch('/:id/precio', actualizarPrecio);
+router.put('/:id', actualizarProducto); 
 
 module.exports = router;
