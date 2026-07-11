@@ -1,3 +1,4 @@
+//clienteController.js
 const pool = require('../config/db');
 
 const obtenerClientes = async (req, res) => {

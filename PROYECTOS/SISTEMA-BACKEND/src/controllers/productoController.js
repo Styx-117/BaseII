@@ -1,3 +1,4 @@
+//productoController.js
 const pool = require('../config/db');
 
 const obtenerProductos = async (req, res) => {

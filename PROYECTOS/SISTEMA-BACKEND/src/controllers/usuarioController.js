@@ -1,3 +1,4 @@
+//usuarioController.js
 const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 
@@ -22,7 +23,7 @@ const crearUsuario = async (req, res) => {
 
         const result = await pool.query(
             `INSERT INTO usuarios (nombre_completo, email, password_hash, rol, genero) 
-             VALUES ($1, $2, $3, $4, $5) RETURNING id, nombre_completo, email, rol, genero, activo`,
+            VALUES ($1, $2, $3, $4, $5) RETURNING id, nombre_completo, email, rol, genero, activo`,
             [nombre_completo, email, passwordHash, rol, genero]
         );
         

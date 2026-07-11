@@ -1,3 +1,4 @@
+//ventaRoutes.js
 const express = require('express');
 const router = express.Router();
 const { obtenerVentas, registrarVenta, obtenerVentaConId } = require('../controllers/ventaController');

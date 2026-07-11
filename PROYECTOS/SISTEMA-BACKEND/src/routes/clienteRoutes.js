@@ -1,3 +1,4 @@
+//clienteRoutes.js
 const express = require('express');
 const router = express.Router();
 const { obtenerClientes, crearCliente, actualizarCliente, cambiarEstadoCliente } = require('../controllers/clienteController');

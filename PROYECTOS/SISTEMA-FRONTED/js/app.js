@@ -1,3 +1,4 @@
+//app.js
 import { api } from './api.js';
 import { getUser, login } from './auth.js';
 import { renderInventario } from './views/inventario.js';

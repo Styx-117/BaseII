@@ -1,3 +1,4 @@
+//auditoriaController.js
 const pool = require('../config/db');
 
 const obtenerAuditoriaPrecios = async (req, res) => {

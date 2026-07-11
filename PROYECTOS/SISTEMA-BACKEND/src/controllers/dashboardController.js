@@ -1,3 +1,4 @@
+//dashboardController.js
 const pool = require('../config/db');
 
 const getStats = async (req, res) => {
@@ -12,7 +13,7 @@ const getStats = async (req, res) => {
         );
         const totalUsuarios = parseInt(usuariosRes.rows[0].total_usuarios);
 
-       const chartQuery = `
+    const chartQuery = `
     SELECT DATE(fecha_venta) as fecha, SUM(total) as total_dia 
     FROM ventas 
     WHERE fecha_venta >= CURRENT_DATE - INTERVAL '7 days'

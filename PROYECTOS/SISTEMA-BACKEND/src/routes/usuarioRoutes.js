@@ -1,3 +1,4 @@
+//usuarioRoutes.js
 const express = require('express');
 const router = express.Router();
 const { obtenerUsuarios, crearUsuario, actualizarUsuario, cambiarEstadoUsuario } = require('../controllers/usuarioController');

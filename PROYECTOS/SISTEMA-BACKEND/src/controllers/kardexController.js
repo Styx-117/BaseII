@@ -1,3 +1,4 @@
+//kardexController.js
 const pool = require('../config/db');
 
 const obtenerKardex = async (req, res) => {

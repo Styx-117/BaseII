@@ -1,3 +1,4 @@
+//auth.js
 import { api } from './api.js';
 
 export async function login(email, password) {

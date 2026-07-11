@@ -1,3 +1,4 @@
+//ventaController.js
 const pool = require('../config/db');
 
 const obtenerVentas = async (req, res) => {

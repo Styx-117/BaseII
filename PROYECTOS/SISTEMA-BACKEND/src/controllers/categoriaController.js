@@ -1,3 +1,4 @@
+//categoriaController.js
 const pool = require('../config/db');
 
 const obtenerCategorias = async (req, res) => {

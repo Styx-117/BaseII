@@ -1,3 +1,4 @@
+//productoRoutes.js
 const express = require('express');
 const router = express.Router();
 const { obtenerProductos, crearProducto, eliminarProducto, actualizarPrecio, actualizarProducto } = require('../controllers/productoController');
