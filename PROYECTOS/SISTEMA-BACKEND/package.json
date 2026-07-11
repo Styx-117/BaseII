@@ -2,5 +2,8 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js"
+  },
+  "dependencies": {
+    "cloudinary": "^2.10.0"
   }
 }
