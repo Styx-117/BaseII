@@ -5,9 +5,9 @@ export async function login(email, password) {
         const data = await api.post('/auth/login', { email, password });
         
         localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.usuario)); 
+        localStorage.setItem('user', JSON.stringify(data.user)); 
         
-        return data.usuario;
+        return data.user;
     } catch (error) {
         throw error; 
     }
