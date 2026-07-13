@@ -10,6 +10,7 @@ import { renderProveedores } from './views/proveedores.js';
 import { renderPerfil } from './views/perfil.js';
 import { renderConfiguracion } from './views/configuracion.js';
 import { renderAuditoria } from './views/auditoria.js'; 
+import { renderNuevaVenta } from './views/nueva_venta.js'; 
 
 const app = document.getElementById('app');
 
@@ -343,6 +344,12 @@ function renderDashboard(user) {
         renderAuditoria(viewContent); 
     });
 
+    document.querySelector('a[href="#nueva-venta"]')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+        renderNuevaVenta(viewContent);
+    });
+    
     // Cerrar sesión
     document.getElementById('logout-header').addEventListener('click', (e) => {
         e.preventDefault();
