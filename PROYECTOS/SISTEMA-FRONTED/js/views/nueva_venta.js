@@ -1,3 +1,4 @@
+// js/views/nueva_venta.js
 import { api } from '../api.js';
 
 let carrito = [];
@@ -153,9 +154,11 @@ export async function renderNuevaVenta(container) {
         </div>
     `;
 
+    // Cargar datos iniciales
     await Promise.all([cargarClientesSelect(), cargarProductosSelect()]);
 
-    document.getElementById('buscar-producto').addEventListener('input', (e) => {
+    // 1. Filtrar productos al escribir (oninput)
+    document.getElementById('buscar-producto').oninput = (e) => {
         const valorBusqueda = e.target.value.toLowerCase();
         const selectProducto = document.getElementById('venta-producto');
         
@@ -173,9 +176,10 @@ export async function renderNuevaVenta(container) {
                 selectProducto.innerHTML += `<option value="${p.id}">${p.nombre} (Dispo: ${p.stock_actual})</option>`;
             }
         });
-    });
+    };
 
-    document.getElementById('venta-producto').addEventListener('change', (e) => {
+    // 2. Cambiar producto seleccionado (onchange)
+    document.getElementById('venta-producto').onchange = (e) => {
         const prodId = parseInt(e.target.value);
         const producto = productosDisponibles.find(p => p.id === prodId);
         
@@ -192,9 +196,10 @@ export async function renderNuevaVenta(container) {
             inputCantidad.removeAttribute('max');
             labelStock.innerText = 'Stock disponible: -';
         }
-    });
+    };
 
-    document.getElementById('form-add-carrito').addEventListener('submit', (e) => {
+    // 3. Añadir producto al carrito (onsubmit)
+    document.getElementById('form-add-carrito').onsubmit = (e) => {
         e.preventDefault();
         
         const selectProd = document.getElementById('venta-producto');
@@ -231,12 +236,18 @@ export async function renderNuevaVenta(container) {
         document.getElementById('buscar-producto').value = ''; 
         document.getElementById('stock-disponible-label').innerText = 'Stock disponible: -';
         actualizarVistaCarrito();
-    });
+    };
 
-    document.getElementById('btn-procesar-venta').addEventListener('click', async () => {
+    // 4. Procesar y registrar la venta (onclick + Lock de seguridad)
+    document.getElementById('btn-procesar-venta').onclick = async (e) => {
+        e.preventDefault();
+
         const selectCliente = document.getElementById('venta-cliente');
         const clienteId = selectCliente.value;
         const btnProcesar = document.getElementById('btn-procesar-venta');
+
+        // CONTROL CLAVE: Evita envíos duplicados si ya se está procesando uno
+        if (btnProcesar.disabled && btnProcesar.innerHTML.includes('spinner')) return;
 
         if (!clienteId) {
             alert("Por favor, selecciona un cliente para la facturación.");
@@ -253,11 +264,13 @@ export async function renderNuevaVenta(container) {
         };
 
         try {
+            // Deshabilitar botón inmediatamente y mostrar spinner
             btnProcesar.disabled = true;
             btnProcesar.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Registrando Venta...`;
 
             const res = await api.post('/ventas', payload);
             
+            // Llenar el modal de comprobante electrónico con la respuesta
             document.getElementById('comp-id').innerText = res.venta_id || 'NUEVA';
             document.getElementById('comp-cliente').innerText = selectCliente.options[selectCliente.selectedIndex].text;
             document.getElementById('comp-fecha').innerText = new Date().toLocaleString();
@@ -272,17 +285,22 @@ export async function renderNuevaVenta(container) {
                 </tr>
             `).join('');
 
+            // Abrir modal de éxito
             const modalComprobante = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalComprobanteVenta'));
             modalComprobante.show();
 
         } catch (err) {
             alert("Error al procesar la venta: " + err.message);
+            
+            // En caso de error de red o de stock, restaurar el botón para intentar de nuevo
             btnProcesar.disabled = false;
             btnProcesar.innerHTML = `<i class="fas fa-cash-register me-2"></i> Procesar y Generar Venta`;
         }
-    });
+    };
 
-    document.getElementById('modalComprobanteVenta').addEventListener('hidden.bs.modal', async () => {
+    // 5. Al cerrar el modal de éxito, limpiar todo para la siguiente venta
+    const modalEl = document.getElementById('modalComprobanteVenta');
+    modalEl.addEventListener('hidden.bs.modal', async () => {
         carrito = [];
         actualizarVistaCarrito();
         document.getElementById('venta-cliente').value = '';
@@ -293,7 +311,8 @@ export async function renderNuevaVenta(container) {
         await cargarProductosSelect();
     });
 
-    document.getElementById('btn-imprimir-comprobante').addEventListener('click', () => {
+    // 6. Imprimir el comprobante de venta (onclick)
+    document.getElementById('btn-imprimir-comprobante').onclick = () => {
         const contenido = document.getElementById('area-impresion-comprobante').innerHTML;
         const ventanaOriginal = document.body.innerHTML;
         
@@ -309,7 +328,7 @@ export async function renderNuevaVenta(container) {
         
         document.body.innerHTML = ventanaOriginal;
         window.location.reload(); 
-    });
+    };
 }
 
 function actualizarVistaCarrito() {
@@ -346,12 +365,13 @@ function actualizarVistaCarrito() {
     totalLabel.innerText = `S/ ${subtotalGeneral.toFixed(2)}`;
     btnProcesar.disabled = false;
 
+    // Asignar el borrado de elementos (onclick individual)
     document.querySelectorAll('.btn-quitar-item').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.onclick = (e) => {
             const index = parseInt(e.currentTarget.dataset.index);
             carrito.splice(index, 1);
             actualizarVistaCarrito();
-        });
+        };
     });
 }
 
@@ -359,6 +379,8 @@ async function cargarClientesSelect() {
     try {
         const clientes = await api.get('/clientes');
         const select = document.getElementById('venta-cliente');
+        // Limpiamos opciones anteriores excepto la por defecto
+        select.innerHTML = '<option value="">Seleccione un cliente...</option>';
         clientes.forEach(c => {
             select.innerHTML += `<option value="${c.id}">${c.nombre} (${c.documento || 'Sin Doc'})</option>`;
         });
