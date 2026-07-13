@@ -2,10 +2,10 @@
 import { api } from './api.js';
 import { getUser, login } from './auth.js';
 import { renderInventario } from './views/inventario.js';
-import { renderUsuarios } from './views/usuarios.js'; 
+import { renderUsuarios } from './views/usuarios.js';
 import { renderVentas } from './views/ventas.js';
-import { renderMovimientos } from './views/movimientos.js'; 
-import { renderClientes } from './views/clientes.js'; 
+import { renderMovimientos } from './views/movimientos.js';
+import { renderClientes } from './views/clientes.js';
 
 const app = document.getElementById('app');
 
@@ -42,10 +42,10 @@ function renderLogin() {
         e.preventDefault();
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
-        
+
         try {
             await login(email, password);
-            router(); 
+            router();
         } catch (error) {
             alert("Credenciales incorrectas: " + error.message);
         }
@@ -53,9 +53,13 @@ function renderLogin() {
 }
 
 function renderDashboard(user) {
-    const esMujer = user.genero === 'F' || user.genero === 'Mujer'; 
-    const colorAvatar = esMujer ? '#e83e8c' : '#0d6efd'; 
-    const iconoAvatar = esMujer ? 'fas fa-female' : 'fas fa-user'; 
+    // Determinar color e ícono según género (fallback si no hay imagen)
+    const esMujer = user.genero === 'F' || user.genero === 'Mujer';
+    const colorAvatar = esMujer ? '#e83e8c' : '#0d6efd';
+    const iconoAvatar = esMujer ? 'fas fa-female' : 'fas fa-user';
+
+    // Si el usuario tiene imagen, la usamos; si no, mostramos el ícono
+    const imagenUsuario = user.imagen_url || null;
 
     const esAdmin = user.rol === 'ADMIN';
     const esCajero = user.rol === 'CAJERO';
@@ -67,14 +71,14 @@ function renderDashboard(user) {
                 <div class="brand-logo mb-4 px-2">
                     <h4>PROYECTO BD</h4>
                 </div>
-                
+
                 <ul class="nav flex-column">
                     <li class="nav-item">
                         <a href="#dashboard" class="nav-link active">
                             <i class="fas fa-chart-pie me-2"></i> Estadísticas
                         </a>
                     </li>
-                    
+
                     ${(esAdmin || esCajero) ? `
                     <li class="nav-item mt-3">
                         <a href="#" class="nav-link text-muted small text-uppercase fw-bold">Comercial</a>
@@ -103,7 +107,7 @@ function renderDashboard(user) {
                         </ul>
                     </li>
                     ` : ''}
-                    
+
                     <li class="nav-item mt-auto pt-5">
                         <button id="logout" class="btn btn-outline-light btn-sm w-100 mt-5">
                             <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
@@ -117,11 +121,16 @@ function renderDashboard(user) {
                     <div class="dropdown">
                         <div class="d-flex align-items-center dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; user-select: none;">
                             <span class="me-3">Bienvenido, <b>${user.nombre_completo || 'Administrador'}</b></span>
+                            <!-- Avatar: si hay imagen, la mostramos; si no, el icono -->
+                            ${imagenUsuario ? `
+                            <img src="${imagenUsuario}" alt="Avatar" class="rounded-circle" style="width: 42px; height: 42px; object-fit: cover;">
+                            ` : `
                             <div class="shadow-sm text-white" style="background-color: ${colorAvatar}; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
                                 <i class="${iconoAvatar} fs-5"></i>
                             </div>
+                            `}
                         </div>
-                        
+
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="min-width: 200px;">
                             <li class="px-3 py-2 text-center">
                                 <span class="d-block fw-bold">${user.nombre_completo || 'Admin'}</span>
@@ -154,6 +163,7 @@ function renderDashboard(user) {
         </div>
     `;
 
+    // ========== Lógica de las vistas ==========
     const renderHomeCards = async () => {
         const viewContent = document.getElementById('view-content');
         viewContent.innerHTML = `
@@ -200,7 +210,7 @@ function renderDashboard(user) {
 
         try {
             const stats = await api.get('/dashboard/stats');
-            
+
             document.getElementById('dash-usuarios').innerText = stats.usuarios;
             document.getElementById('dash-ingresos').innerText = 'S/ ' + stats.ingresos.toFixed(2);
 
@@ -212,14 +222,14 @@ function renderDashboard(user) {
 
             const ctx = document.getElementById('ventasChart').getContext('2d');
             new Chart(ctx, {
-                type: 'bar', 
+                type: 'bar',
                 data: {
                     labels: etiquetasFechas.length > 0 ? etiquetasFechas : ['Sin datos recientes'],
                     datasets: [{
                         label: 'Ventas (S/)',
                         data: totalesSoles.length > 0 ? totalesSoles : [0],
                         backgroundColor: '#0d6efd',
-                        borderRadius: 6 
+                        borderRadius: 6
                     }]
                 },
                 options: {
@@ -235,9 +245,9 @@ function renderDashboard(user) {
                         }
                     },
                     scales: {
-                        y: { 
+                        y: {
                             beginAtZero: true,
-                            grid: { borderDash: [5, 5] } 
+                            grid: { borderDash: [5, 5] }
                         },
                         x: {
                             grid: { display: false }
@@ -247,7 +257,6 @@ function renderDashboard(user) {
             });
 
         } catch (err) {
-
             console.error("Error cargando dashboard:", err);
             document.getElementById('dash-usuarios').innerText = '-';
             document.getElementById('dash-ingresos').innerText = '-';
@@ -255,9 +264,11 @@ function renderDashboard(user) {
     };
 
     const viewContent = document.getElementById('view-content');
-    
+
+    // Cargar el dashboard inicial
     renderHomeCards();
 
+    // Navegación
     document.querySelector('a[href="#usuarios"]')?.addEventListener('click', (e) => {
         e.preventDefault();
         document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
@@ -285,7 +296,7 @@ function renderDashboard(user) {
         e.currentTarget.classList.add('active');
         renderInventario(viewContent);
     });
-    
+
     document.querySelector('a[href="#clientes"]')?.addEventListener('click', (e) => {
         e.preventDefault();
         document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
@@ -296,10 +307,11 @@ function renderDashboard(user) {
     document.querySelector('a[href="#dashboard"]')?.addEventListener('click', (e) => {
         e.preventDefault();
         document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-        e.currentTarget.classList.add('active');  
+        e.currentTarget.classList.add('active');
         renderHomeCards();
     });
 
+    // Cerrar sesión
     document.getElementById('logout-header').addEventListener('click', (e) => {
         e.preventDefault();
         localStorage.clear();
@@ -312,4 +324,5 @@ function renderDashboard(user) {
     });
 }
 
+// Iniciar la aplicación
 router();

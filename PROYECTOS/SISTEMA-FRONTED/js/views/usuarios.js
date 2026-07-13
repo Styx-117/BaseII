@@ -27,9 +27,9 @@ export async function renderUsuarios(container) {
         </div>
 
         <div class="modal fade" id="modalUsuario" tabindex="-1">
-            <div class="modal-dialog">
+            <div class="modal-dialog modal-lg">
                 <div class="modal-content">
-                    <form id="form-usuario">
+                    <form id="form-usuario" enctype="multipart/form-data">
                         <input type="hidden" id="usuario-id">
                         
                         <div class="modal-header bg-danger text-white">
@@ -37,34 +37,50 @@ export async function renderUsuarios(container) {
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
-                            <div class="mb-3">
-                                <label class="form-label small text-muted">Nombre Completo</label>
-                                <input type="text" id="nombre_usuario" class="form-control" placeholder="Ej: Mayra Saravia" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label small text-muted">Correo Electrónico (Login)</label>
-                                <input type="email" id="email_usuario" class="form-control" placeholder="ejemplo@wowdash.com" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label small text-muted">Contraseña</label>
-                                <input type="password" id="password_usuario" class="form-control" placeholder="Mínimo 6 caracteres">
-                                <small class="text-muted" id="password-helper" style="font-size: 0.75rem;">Al editar, déjalo en blanco si no deseas cambiarla.</small>
-                            </div>
                             <div class="row">
-                                <div class="col-6 mb-3">
-                                    <label class="form-label small text-muted">Rol en el Sistema</label>
-                                    <select id="rol_usuario" class="form-select" required>
-                                        <option value="ADMIN">Administrador</option>
-                                        <option value="CAJERO">Cajero</option>
-                                        <option value="ALMACENERO">Almacenero</option>
-                                    </select>
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label class="form-label small text-muted">Nombre Completo</label>
+                                        <input type="text" id="nombre_usuario" class="form-control" placeholder="Ej: Mayra Saravia" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small text-muted">Correo Electrónico (Login)</label>
+                                        <input type="email" id="email_usuario" class="form-control" placeholder="ejemplo@wowdash.com" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small text-muted">Contraseña</label>
+                                        <input type="password" id="password_usuario" class="form-control" placeholder="Mínimo 6 caracteres">
+                                        <small class="text-muted" id="password-helper" style="font-size: 0.75rem;">Al editar, déjalo en blanco si no deseas cambiarla.</small>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label small text-muted">Rol en el Sistema</label>
+                                            <select id="rol_usuario" class="form-select" required>
+                                                <option value="ADMIN">Administrador</option>
+                                                <option value="CAJERO">Cajero</option>
+                                                <option value="ALMACENERO">Almacenero</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label small text-muted">Género (Avatar)</label>
+                                            <select id="genero_usuario" class="form-select" required>
+                                                <option value="M">Masculino (Azul)</option>
+                                                <option value="F">Femenino (Rosa)</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-6 mb-3">
-                                    <label class="form-label small text-muted">Género (Avatar)</label>
-                                    <select id="genero_usuario" class="form-select" required>
-                                        <option value="M">Masculino (Azul)</option>
-                                        <option value="F">Femenino (Rosa)</option>
-                                    </select>
+                                <div class="col-md-4">
+                                    <!-- Campo de imagen -->
+                                    <div class="mb-3">
+                                        <label for="imagen_usuario" class="form-label">Foto de perfil</label>
+                                        <input type="file" class="form-control" id="imagen_usuario" accept="image/*">
+                                        <small class="text-muted">Opcional, máximo 5MB (JPG, PNG)</small>
+                                    </div>
+                                    <!-- Vista previa -->
+                                    <div id="preview-usuario-container" class="text-center" style="display:none;">
+                                        <img id="preview-usuario" src="#" alt="Vista previa" class="img-fluid rounded-circle" style="width:100px; height:100px; object-fit:cover;">
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -81,6 +97,7 @@ export async function renderUsuarios(container) {
             <table class="table table-hover align-middle">
                 <thead class="table-light">
                     <tr>
+                        <th>Foto</th>
                         <th>Colaborador</th>
                         <th>Email</th>
                         <th>Rol Asignado</th>
@@ -90,11 +107,29 @@ export async function renderUsuarios(container) {
                     </tr>
                 </thead>
                 <tbody id="tabla-usuarios">
-                    <tr><td colspan="6" class="text-center">Cargando personal...</td></tr>
+                    <tr><td colspan="7" class="text-center">Cargando personal...</td></tr>
                 </tbody>
             </table>
         </div>
     `;
+
+    // Vista previa de imagen
+    document.getElementById('imagen_usuario').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const previewContainer = document.getElementById('preview-usuario-container');
+        const previewImg = document.getElementById('preview-usuario');
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                previewImg.src = event.target.result;
+                previewContainer.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            previewContainer.style.display = 'none';
+            previewImg.src = '#';
+        }
+    });
 
     await cargarTablaUsuarios();
 
@@ -104,30 +139,37 @@ export async function renderUsuarios(container) {
         document.getElementById('password_usuario').required = true; 
         document.getElementById('password-helper').classList.add('d-none');
         document.getElementById('modal-usuario-titulo').innerText = 'Registrar Colaborador';
+        document.getElementById('preview-usuario-container').style.display = 'none';
+        document.getElementById('imagen_usuario').value = '';
         bootstrap.Modal.getOrCreateInstance(document.getElementById('modalUsuario')).show();
     });
 
     document.getElementById('form-usuario').addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = document.getElementById('usuario-id').value;
+
+        // Construir FormData
+        const formData = new FormData();
+        formData.append('nombre_completo', document.getElementById('nombre_usuario').value);
+        formData.append('email', document.getElementById('email_usuario').value);
+        formData.append('rol', document.getElementById('rol_usuario').value);
+        formData.append('genero', document.getElementById('genero_usuario').value);
+
         const passwordValue = document.getElementById('password_usuario').value;
-
-        const data = {
-            nombre_completo: document.getElementById('nombre_usuario').value,
-            email: document.getElementById('email_usuario').value,
-            rol: document.getElementById('rol_usuario').value,
-            genero: document.getElementById('genero_usuario').value
-        };
-
         if (passwordValue) {
-            data.password = passwordValue;
+            formData.append('password', passwordValue);
+        }
+
+        const fileInput = document.getElementById('imagen_usuario');
+        if (fileInput.files.length > 0) {
+            formData.append('imagen', fileInput.files[0]);
         }
 
         try {
             if (id) {
-                await api.put(`/usuarios/${id}`, data);
+                await api.putForm(`/usuarios/${id}`, formData);
             } else {
-                await api.post('/usuarios', data);
+                await api.postForm('/usuarios', formData);
             }
             
             bootstrap.Modal.getOrCreateInstance(document.getElementById('modalUsuario')).hide();
@@ -144,7 +186,7 @@ async function cargarTablaUsuarios() {
         const tbody = document.getElementById('tabla-usuarios');
         
         if (usuarios.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay usuarios registrados</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay usuarios registrados</td></tr>';
             return;
         }
 
@@ -158,6 +200,10 @@ async function cargarTablaUsuarios() {
 
             return `
             <tr>
+                <td>
+                    ${u.imagen_url ? `<img src="${u.imagen_url}" width="50" height="50" class="rounded-circle" alt="Usuario">` : 
+                    `<span class="text-muted">Sin foto</span>`}
+                </td>
                 <td class="fw-bold">
                     <i class="fas ${esMujer ? 'fa-female text-pink' : 'fa-user text-blue'} me-2"></i> 
                     ${u.nombre_completo}
@@ -200,8 +246,10 @@ async function cargarTablaUsuarios() {
                 
                 document.getElementById('password_usuario').required = false; 
                 document.getElementById('password-helper').classList.remove('d-none');
-                
                 document.getElementById('modal-usuario-titulo').innerText = 'Editar Colaborador';
+                // Limpiar campo de imagen y vista previa
+                document.getElementById('imagen_usuario').value = '';
+                document.getElementById('preview-usuario-container').style.display = 'none';
                 bootstrap.Modal.getOrCreateInstance(document.getElementById('modalUsuario')).show();
             });
         });
@@ -222,6 +270,6 @@ async function cargarTablaUsuarios() {
         });
 
     } catch (err) {
-        document.getElementById('tabla-usuarios').innerHTML = `<tr><td colspan="6" class="text-danger text-center">Error al cargar usuarios</td></tr>`;
+        document.getElementById('tabla-usuarios').innerHTML = `<tr><td colspan="7" class="text-danger text-center">Error al cargar usuarios</td></tr>`;
     }
 }
