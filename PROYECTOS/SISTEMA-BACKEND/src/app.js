@@ -19,6 +19,7 @@ app.use('/api/clientes', require('./routes/clienteRoutes'));
 app.use('/api/usuarios', require('./routes/usuarioRoutes'));
 app.use('/api/kardex', require('./routes/kardexRoutes'));
 app.use('/api/auditoria', require('./routes/auditoriaRoutes'));
+app.use('/api/proveedores', require('./routes/proveedorRoutes'));
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/auth', authRoutes);
 
