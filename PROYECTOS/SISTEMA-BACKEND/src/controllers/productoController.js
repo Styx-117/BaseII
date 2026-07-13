@@ -3,6 +3,7 @@ const pool = require('../config/db');
 
 const obtenerProductos = async (req, res) => {
     try {
+        // Ahora al hacer SELECT *, también traerá la nueva columna imagen_url
         const result = await pool.query('SELECT * FROM productos WHERE activo = TRUE ORDER BY id ASC');
         res.json(result.rows);
     } catch (error) {
@@ -13,11 +14,14 @@ const obtenerProductos = async (req, res) => {
 
 const crearProducto = async (req, res) => {
     const { nombre, descripcion, precio, stock_actual, categoria_id, etiquetas } = req.body;
+    
+    // Capturamos la URL de Cloudinary si se subió un archivo
+    const imagen_url = req.file ? req.file.path : null;
 
     try {
         const result = await pool.query(
-            'INSERT INTO productos (nombre, descripcion, precio, stock_actual, categoria_id, etiquetas) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-            [nombre, descripcion, precio, stock_actual, categoria_id, etiquetas]
+            'INSERT INTO productos (nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, imagen_url) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+            [nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, imagen_url]
         );
         res.status(201).json(result.rows[0]);
     } catch (error) {
@@ -65,12 +69,25 @@ const actualizarPrecio = async (req, res) => {
 const actualizarProducto = async (req, res) => {
     const { id } = req.params;
     const { nombre, descripcion, precio, stock_actual, categoria_id, etiquetas } = req.body;
+    
+    const imagen_url = req.file ? req.file.path : null;
 
     try {
-        const result = await pool.query(
-            'UPDATE productos SET nombre = $1, descripcion = $2, precio = $3, stock_actual = $4, categoria_id = $5, etiquetas = $6 WHERE id = $7 RETURNING *',
-            [nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, id]
-        );
+        let result;
+        
+        if (imagen_url) {
+            // Si el usuario subió una NUEVA imagen, actualizamos también la imagen_url
+            result = await pool.query(
+                'UPDATE productos SET nombre = $1, descripcion = $2, precio = $3, stock_actual = $4, categoria_id = $5, etiquetas = $6, imagen_url = $7 WHERE id = $8 RETURNING *',
+                [nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, imagen_url, id]
+            );
+        } else {
+            // Si no subió imagen, mantenemos la que ya tenía y actualizamos solo el texto
+            result = await pool.query(
+                'UPDATE productos SET nombre = $1, descripcion = $2, precio = $3, stock_actual = $4, categoria_id = $5, etiquetas = $6 WHERE id = $7 RETURNING *',
+                [nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, id]
+            );
+        }
 
         if (result.rowCount === 0) {
             return res.status(404).json({ error: 'Producto no encontrado' });
