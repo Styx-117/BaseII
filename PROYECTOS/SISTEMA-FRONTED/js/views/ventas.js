@@ -1,6 +1,7 @@
 // js/views/ventas.js
 import { api } from '../api.js';
 import { getUser } from '../auth.js';
+import { renderNuevaVenta } from './nueva_venta.js';
 
 export async function renderVentas(container) {
     const user = getUser();
@@ -125,7 +126,7 @@ export async function renderVentas(container) {
 
     if (esCajero) {
         document.getElementById('btn-ir-nueva-venta').addEventListener('click', (e) => {
-            
+            renderNuevaVenta(container);
         });
     }
 }
