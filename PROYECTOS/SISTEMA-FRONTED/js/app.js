@@ -7,6 +7,8 @@ import { renderVentas } from './views/ventas.js';
 import { renderMovimientos } from './views/movimientos.js';
 import { renderClientes } from './views/clientes.js';
 import { renderProveedores } from './views/proveedores.js';
+import { renderPerfil } from './views/perfil.js';
+import { renderConfiguracion } from './views/configuracion.js';
 
 const app = document.getElementById('app');
 
@@ -275,6 +277,18 @@ function renderDashboard(user) {
         document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
         e.currentTarget.classList.add('active');
         renderUsuarios(viewContent);
+    });
+
+    document.querySelector('a[href="#perfil"]')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+        renderPerfil(viewContent);
+    });
+
+    document.querySelector('a[href="#configuracion"]')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+        renderConfiguracion(viewContent);
     });
 
     document.querySelector('a[href="#ventas"]')?.addEventListener('click', (e) => {
