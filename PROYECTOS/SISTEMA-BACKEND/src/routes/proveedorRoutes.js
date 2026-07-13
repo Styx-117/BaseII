@@ -10,7 +10,7 @@ const verificarLogistica = (req, res, next) => {
     next();
 };
 
-router.get('/', verificarToken, verificarLogistica, obtenerProveedores);
+router.get('/', verificarToken, obtenerProveedores);
 router.post('/', verificarToken, verificarLogistica, crearProveedor);
 router.put('/:id', verificarToken, verificarLogistica, actualizarProveedor);
 router.patch('/:id/estado', verificarToken, verificarLogistica, cambiarEstadoProveedor);
