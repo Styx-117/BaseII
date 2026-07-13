@@ -29,7 +29,8 @@ export async function renderMovimientos(container) {
                                     <label class="form-label small text-muted">Tipo de Movimiento</label>
                                     <select id="mov_tipo" class="form-select" required>
                                         <option value="INGRESO">Ingreso (Entrada)</option>
-                                        <option value="SALIDA">Egreso (Salida/Merma)</option>
+                                        <option value="SALIDA">Egreso (Salida)</option>
+                                        <option value="AJUSTE">Ajuste de Stock</option>
                                     </select>
                                 </div>
                                 <div class="col-6">
