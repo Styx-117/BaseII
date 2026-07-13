@@ -1,4 +1,4 @@
-//ventas.js
+// js/views/ventas.js
 import { api } from '../api.js';
 import { getUser } from '../auth.js';
 
@@ -19,17 +19,21 @@ export async function renderVentas(container) {
     }
 
     const esAdmin = user.rol === 'ADMIN';
+    const esCajero = user.rol === 'CAJERO';
 
     container.innerHTML = `
         <div class="d-flex justify-content-between mb-4 align-items-center">
-            <h3><i class="fas fa-file-invoice-dollar text-success me-2"></i> Historial de Ventas</h3>
+            <div>
+                <h3 class="mb-0"><i class="fas fa-file-invoice-dollar text-success me-2"></i> Historial de Ventas</h3>
+                ${esCajero ? '<small class="text-muted"><i class="fas fa-clock me-1"></i> Mostrando ventas recientes (últimos 3 días)</small>' : ''}
+            </div>
             
-            ${!esAdmin ? `
-                <button class="btn btn-success fw-bold" id="btn-nueva-venta">
-                    <i class="fas fa-plus"></i> Registrar Venta
-                </button>
+            ${esCajero ? `
+                <a href="#nueva-venta" id="btn-ir-nueva-venta" class="btn btn-success fw-bold shadow-sm">
+                    <i class="fas fa-cash-register"></i> Nueva Venta
+                </a>
             ` : `
-                <span class="badge bg-secondary fs-6"><i class="fas fa-user-shield"></i> Modo Auditoría (Solo Lectura y Anulaciones)</span>
+                <span class="badge bg-secondary fs-6"><i class="fas fa-user-shield"></i> Modo Auditoría Completa</span>
             `}
         </div>
 
@@ -40,7 +44,6 @@ export async function renderVentas(container) {
                         <h5 class="modal-title fw-bold">Detalle de Venta #<span id="detalle-id"></span></h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
-                    
                     <div class="modal-body" id="area-impresion">
                         <div class="row mb-3">
                             <div class="col-md-6">
@@ -52,7 +55,6 @@ export async function renderVentas(container) {
                                 <h6 id="detalle-fecha-vendedor">---</h6>
                             </div>
                         </div>
-                        
                         <table class="table table-bordered table-sm mt-3">
                             <thead class="table-dark">
                                 <tr>
@@ -62,8 +64,7 @@ export async function renderVentas(container) {
                                     <th class="text-end">Subtotal</th>
                                 </tr>
                             </thead>
-                            <tbody id="tabla-detalle-productos">
-                            </tbody>
+                            <tbody id="tabla-detalle-productos"></tbody>
                             <tfoot>
                                 <tr>
                                     <th colspan="3" class="text-end">TOTAL:</th>
@@ -117,16 +118,13 @@ export async function renderVentas(container) {
                 <p class="text-center small">¡Gracias por su compra!</p>
             </div>
         `;
-        
         window.print(); 
-        
         document.body.innerHTML = ventanaOriginal;
         window.location.reload(); 
     });
 
-    if (!esAdmin) {
-        document.getElementById('btn-nueva-venta').addEventListener('click', () => {
-            alert("Aquí abriremos el módulo POS para escanear y cobrar productos.");
+    if (esCajero) {
+        document.getElementById('btn-ir-nueva-venta').addEventListener('click', (e) => {
             
         });
     }
@@ -138,14 +136,13 @@ async function cargarHistorialVentas(esAdmin) {
         const tbody = document.getElementById('tabla-ventas');
         
         if (ventas.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay ventas registradas</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay ventas registradas en este periodo</td></tr>';
             return;
         }
 
         tbody.innerHTML = ventas.map(v => {
             const fechaBD = v.fecha || v.fecha_venta; 
             const fechaMostrada = fechaBD ? new Date(fechaBD).toLocaleString() : 'Sin fecha';
-            
             const estado = v.estado || 'COMPLETADA';
             const badgeEstado = estado === 'ANULADA' 
                 ? '<span class="badge bg-danger">Anulada</span>'
@@ -163,7 +160,6 @@ async function cargarHistorialVentas(esAdmin) {
                     <button class="btn btn-sm btn-outline-primary btn-ver-detalle" data-id="${v.id}">
                         <i class="fas fa-eye"></i> Detalle
                     </button>
-                    
                     ${esAdmin && estado !== 'ANULADA' ? `
                         <button class="btn btn-sm btn-outline-danger btn-anular-venta ms-1" data-id="${v.id}">
                             <i class="fas fa-times-circle"></i> Anular
@@ -195,7 +191,6 @@ async function cargarHistorialVentas(esAdmin) {
                 });
             });
         }
-
     } catch (err) {
         document.getElementById('tabla-ventas').innerHTML = `<tr><td colspan="7" class="text-danger text-center">Error al cargar historial</td></tr>`;
     }
@@ -204,7 +199,6 @@ async function cargarHistorialVentas(esAdmin) {
 async function abrirModalDetalle(idVenta) {
     try {
         const detalle = await api.get(`/ventas/${idVenta}`);
-        
         const fechaBD = detalle.fecha || detalle.fecha_venta;
         const fechaMostrada = fechaBD ? new Date(fechaBD).toLocaleString() : 'Sin fecha';
 

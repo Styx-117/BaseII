@@ -24,7 +24,7 @@ export async function renderPerfil(container) {
                                 <input type="text" id="perfil_nombre" class="form-control" value="${user.nombre_completo}" required>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label text-muted small fw-bold">Correo Electrónico (Login)</label>
+                                <label class="form-label text-muted small fw-bold">Correo Electrónico</label>
                                 <input type="email" id="perfil_email" class="form-control" value="${user.email}" required>
                             </div>
                             
@@ -65,7 +65,7 @@ export async function renderPerfil(container) {
         }
 
         try {
-            await api.put(`/usuarios/${user.id}`, data);
+            await api.put(`/usuarios/${user.id}/perfil`, data);
             
             alert("¡Perfil actualizado con éxito! Por favor, inicia sesión nuevamente para reflejar los cambios.");
             localStorage.clear();

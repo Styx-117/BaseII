@@ -34,6 +34,7 @@ const login = async (req, res) => {
             nombre_completo: usuario.nombre_completo,
             rol: usuario.rol,
             genero: usuario.genero || 'M',
+            email: usuario.email,
             imagen_url: usuario.imagen_url || null
         };
 
