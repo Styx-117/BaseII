@@ -65,7 +65,7 @@ export async function renderPerfil(container) {
         }
 
         try {
-            await api.put(`/usuarios/${user.id}`, data);
+            await api.put(`/usuarios/${user.id}/perfil`, data);
             
             alert("¡Perfil actualizado con éxito! Por favor, inicia sesión nuevamente para reflejar los cambios.");
             localStorage.clear();
