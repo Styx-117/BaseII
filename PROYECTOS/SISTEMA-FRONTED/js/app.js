@@ -6,6 +6,7 @@ import { renderUsuarios } from './views/usuarios.js';
 import { renderVentas } from './views/ventas.js';
 import { renderMovimientos } from './views/movimientos.js';
 import { renderClientes } from './views/clientes.js';
+import { renderProveedores } from './views/proveedores.js';
 
 const app = document.getElementById('app');
 
@@ -69,7 +70,7 @@ function renderDashboard(user) {
         <div class="d-flex bg-light vh-100 overflow-hidden">
             <nav class="sidebar p-3 overflow-auto" style="min-width: 260px;">
                 <div class="brand-logo mb-4 px-2">
-                    <h4>LA BODEGA DE DON PEPITO</h4>
+                    <h4>SISTEMA BD</h4>
                 </div>
 
                 <ul class="nav flex-column">
@@ -96,6 +97,15 @@ function renderDashboard(user) {
                             <li><a href="#inventario" class="nav-link"><span class="dot bg-primary"></span> Productos</a></li>
                             <li><a href="#movimientos" class="nav-link"><span class="dot bg-info"></span> Kardex </a></li>
                         </ul>
+                    </li>
+                    ` : ''}
+                    ${(esAdmin || esAlmacen) ? `
+                    <li class="nav-item mt-3">
+                        <a href="#" class="nav-link text-muted small text-uppercase fw-bold">Logística</a>
+                        <ul class="nav flex-column ps-3 mt-2">
+                            <li><a href="#inventario" class="nav-link"><span class="dot bg-primary"></span> Productos</a></li>
+                            <li><a href="#movimientos" class="nav-link"><span class="dot bg-info"></span> Kardex </a></li>
+                            <li><a href="#proveedores" class="nav-link"><span class="dot bg-secondary"></span> Proveedores</a></li> </ul>
                     </li>
                     ` : ''}
 
@@ -302,6 +312,13 @@ function renderDashboard(user) {
         document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
         e.currentTarget.classList.add('active');
         renderClientes(viewContent);
+    });
+
+    document.querySelector('a[href="#proveedores"]')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        renderProveedores(viewContent);
     });
 
     document.querySelector('a[href="#dashboard"]')?.addEventListener('click', (e) => {
