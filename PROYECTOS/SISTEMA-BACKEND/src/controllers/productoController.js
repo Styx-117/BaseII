@@ -1,88 +1,126 @@
-//productoController.js
+// usuarioController.js
 const pool = require('../config/db');
+const bcrypt = require('bcryptjs');
 
-const obtenerProductos = async (req, res) => {
+// Obtener usuarios con imagen_url
+const obtenerUsuarios = async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM productos WHERE activo = TRUE ORDER BY id ASC');
+        const query = `
+            SELECT u.id, u.nombre_completo, u.email, u.rol, u.genero, u.activo, i.url AS imagen_url
+            FROM usuarios u
+            LEFT JOIN imagenes i ON u.imagen_id = i.id
+            ORDER BY u.id DESC
+        `;
+        const result = await pool.query(query);
         res.json(result.rows);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error al obtener los productos' });
+        console.error("Error al obtener usuarios:", error);
+        res.status(500).json({ error: 'Error al obtener usuarios' });
     }
 };
 
-const crearProducto = async (req, res) => {
-    const { nombre, descripcion, precio, stock_actual, categoria_id, etiquetas } = req.body;
-    
+// Crear usuario con imagen (opcional)
+const crearUsuario = async (req, res) => {
+    const { nombre_completo, email, password, rol, genero } = req.body;
+    let imagen_id = null;
+
     try {
-        const result = await pool.query(
-            'INSERT INTO productos (nombre, descripcion, precio, stock_actual, categoria_id, etiquetas) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-            [nombre, descripcion, precio, stock_actual, categoria_id, etiquetas]
-        );
+        // Si se subió una imagen, guardar en tabla imagenes
+        if (req.file) {
+            const result = await pool.query(
+                'INSERT INTO imagenes (url, public_id) VALUES ($1, $2) RETURNING id',
+                [req.file.path, req.file.filename]
+            );
+            imagen_id = result.rows[0].id;
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(password, salt);
+
+        const query = `
+            INSERT INTO usuarios (nombre_completo, email, password_hash, rol, genero, imagen_id)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id, nombre_completo, email, rol, genero, activo
+        `;
+        const values = [nombre_completo, email, passwordHash, rol, genero, imagen_id];
+        const result = await pool.query(query, values);
         res.status(201).json(result.rows[0]);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error al crear el producto' });
+        console.error("Error al crear usuario:", error);
+        if (error.code === '23505') {
+            return res.status(400).json({ error: 'Ya existe un usuario con este correo electrónico' });
+        }
+        res.status(500).json({ error: 'Error interno al crear usuario' });
     }
 };
 
-const eliminarProducto = async (req, res) => {
-    const { id } = req.params; 
-    try {
-        await pool.query('UPDATE productos SET activo = FALSE WHERE id = $1', [id]);
-        res.json({ mensaje: 'Producto eliminado correctamente (oculto del sistema)' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error al eliminar el producto' });
-    }
-};
-    
-const actualizarPrecio = async (req, res) => {
+// Actualizar usuario con imagen (opcional)
+const actualizarUsuario = async (req, res) => {
     const { id } = req.params;
-    const { nuevo_precio } = req.body;
+    const { nombre_completo, email, password, rol, genero } = req.body;
+    let imagen_id = null;
 
     try {
-        const result = await pool.query(
-            'UPDATE productos SET precio = $1 WHERE id = $2 RETURNING *',
-            [nuevo_precio, id]
-        );
-
-        if (result.rowCount === 0) {
-            return res.status(404).json({ error: 'Producto no encontrado' });
+        // Si se subió una nueva imagen, guardar en tabla imagenes
+        if (req.file) {
+            const result = await pool.query(
+                'INSERT INTO imagenes (url, public_id) VALUES ($1, $2) RETURNING id',
+                [req.file.path, req.file.filename]
+            );
+            imagen_id = result.rows[0].id;
         }
 
-        res.json({ 
-            mensaje: 'Precio actualizado con éxito', 
-            producto: result.rows[0] 
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error al actualizar el precio' });
-    }
+        // Construir consulta dinámica
+        let query = `
+            UPDATE usuarios
+            SET nombre_completo = $1, email = $2, rol = $3, genero = $4
+        `;
+        let values = [nombre_completo, email, rol, genero];
+        let idx = 5;
 
-};
-
-const actualizarProducto = async (req, res) => {
-    const { id } = req.params;
-    const { nombre, descripcion, precio, stock_actual, categoria_id, etiquetas } = req.body;
-
-    try {
-        const result = await pool.query(
-            'UPDATE productos SET nombre = $1, descripcion = $2, precio = $3, stock_actual = $4, categoria_id = $5, etiquetas = $6 WHERE id = $7 RETURNING *',
-            [nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, id]
-        );
-        
-        if (result.rowCount === 0) {
-            return res.status(404).json({ error: 'Producto no encontrado' });
+        if (password) {
+            const salt = await bcrypt.genSalt(10);
+            const passwordHash = await bcrypt.hash(password, salt);
+            query += `, password_hash = $${idx}`;
+            values.push(passwordHash);
+            idx++;
         }
-        res.json({ 
-            mensaje: 'Producto actualizado con éxito',
-            producto: result.rows[0]
-        });
+
+        if (imagen_id) {
+            query += `, imagen_id = $${idx}`;
+            values.push(imagen_id);
+            idx++;
+        }
+
+        query += ` WHERE id = $${idx} RETURNING id, nombre_completo, email, rol, genero, activo`;
+        values.push(id);
+
+        const result = await pool.query(query, values);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        res.json(result.rows[0]);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error al actualizar el producto' });
+        console.error("Error al actualizar usuario:", error);
+        if (error.code === '23505') {
+            return res.status(400).json({ error: 'El correo electrónico ya está en uso por otro usuario' });
+        }
+        res.status(500).json({ error: 'Error interno al actualizar usuario' });
     }
 };
 
-module.exports = { obtenerProductos, crearProducto, eliminarProducto, actualizarPrecio, actualizarProducto };
+const cambiarEstadoUsuario = async (req, res) => {
+    const { id } = req.params;
+    const { activo } = req.body;
+    try {
+        await pool.query('UPDATE usuarios SET activo = $1 WHERE id = $2', [activo, id]);
+        res.json({ mensaje: `Usuario ${activo ? 'activado' : 'desactivado'} correctamente` });
+    } catch (error) {
+        console.error("Error al cambiar estado:", error);
+        res.status(500).json({ error: 'Error al cambiar el estado del usuario' });
+    }
+};
+
+module.exports = { obtenerUsuarios, crearUsuario, actualizarUsuario, cambiarEstadoUsuario };
