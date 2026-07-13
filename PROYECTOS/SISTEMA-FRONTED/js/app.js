@@ -96,15 +96,6 @@ function renderDashboard(user) {
                         <ul class="nav flex-column ps-3 mt-2">
                             <li><a href="#inventario" class="nav-link"><span class="dot bg-primary"></span> Productos</a></li>
                             <li><a href="#movimientos" class="nav-link"><span class="dot bg-info"></span> Kardex </a></li>
-                        </ul>
-                    </li>
-                    ` : ''}
-                    ${(esAdmin || esAlmacen) ? `
-                    <li class="nav-item mt-3">
-                        <a href="#" class="nav-link text-muted small text-uppercase fw-bold">Logística</a>
-                        <ul class="nav flex-column ps-3 mt-2">
-                            <li><a href="#inventario" class="nav-link"><span class="dot bg-primary"></span> Productos</a></li>
-                            <li><a href="#movimientos" class="nav-link"><span class="dot bg-info"></span> Kardex </a></li>
                             <li><a href="#proveedores" class="nav-link"><span class="dot bg-secondary"></span> Proveedores</a></li> </ul>
                     </li>
                     ` : ''}
