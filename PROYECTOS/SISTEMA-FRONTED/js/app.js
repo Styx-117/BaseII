@@ -272,96 +272,71 @@ function renderDashboard(user) {
 
     const viewContent = document.getElementById('view-content');
 
-    // Cargar el dashboard inicial
-    renderHomeCards();
+    const routerDinamico = () => {
+        const hash = window.location.hash || '#dashboard';
+        
+        document.querySelectorAll('.sidebar .nav-link').forEach(link => link.classList.remove('active'));
+        const botonActivo = document.querySelector(`.sidebar a[href="${hash}"]`);
+        if (botonActivo) {
+            botonActivo.classList.add('active');
+        }
 
-    // Navegación
-    document.querySelector('a[href="#usuarios"]')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        renderUsuarios(viewContent);
-    });
+        switch (hash) {
+            case '#dashboard':
+                renderHomeCards();
+                break;
+            case '#ventas':
+                renderVentas(viewContent);
+                break;
+            case '#nueva-venta':
+                renderNuevaVenta(viewContent);
+                break;
+            case '#clientes':
+                renderClientes(viewContent);
+                break;
+            case '#inventario':
+                renderInventario(viewContent);
+                break;
+            case '#movimientos':
+                renderMovimientos(viewContent);
+                break;
+            case '#proveedores':
+                renderProveedores(viewContent);
+                break;
+            case '#usuarios':
+                if (esAdmin) renderUsuarios(viewContent);
+                else renderHomeCards(); 
+                break;
+            case '#auditoria':
+                if (esAdmin) renderAuditoria(viewContent);
+                else renderHomeCards();
+                break;
+            case '#perfil':
+                renderPerfil(viewContent);
+                break;
+            case '#configuracion':
+                renderConfiguracion(viewContent);
+                break;
+            default:
+                renderHomeCards(); 
+        }
+    };
 
-    document.querySelector('a[href="#perfil"]')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-        renderPerfil(viewContent);
-    });
+    window.addEventListener('hashchange', routerDinamico);
 
-    document.querySelector('a[href="#configuracion"]')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-        renderConfiguracion(viewContent);
-    });
-
-    document.querySelector('a[href="#ventas"]')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        renderVentas(viewContent);
-    });
-
-    document.querySelector('a[href="#movimientos"]')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        renderMovimientos(viewContent);
-    });
-
-    document.querySelector('a[href="#inventario"]')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        renderInventario(viewContent);
-    });
-
-    document.querySelector('a[href="#clientes"]')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        renderClientes(viewContent);
-    });
-
-    document.querySelector('a[href="#proveedores"]')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        renderProveedores(viewContent);
-    });
-
-    document.querySelector('a[href="#dashboard"]')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        renderHomeCards();
-    });
-
-    document.querySelector('a[href="#auditoria"]')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        renderAuditoria(viewContent); 
-    });
-
-    document.querySelector('a[href="#nueva-venta"]')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-        renderNuevaVenta(viewContent);
-    });
+    routerDinamico();
     
-    // Cerrar sesión
-    document.getElementById('logout-header').addEventListener('click', (e) => {
+    document.getElementById('logout-header')?.addEventListener('click', (e) => {
         e.preventDefault();
         localStorage.clear();
         router();
     });
 
-    document.getElementById('logout').addEventListener('click', () => {
+    document.getElementById('logout')?.addEventListener('click', () => {
         localStorage.clear();
         router();
     });
 }
 
-// Iniciar la aplicación
+
 router();
