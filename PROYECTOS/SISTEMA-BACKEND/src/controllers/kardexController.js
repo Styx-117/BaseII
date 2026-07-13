@@ -10,13 +10,13 @@ const registrarMovimiento = async (req, res) => {
         if (cantidad <= 0) {
             return res.status(400).json({ error: 'La cantidad debe ser mayor a 0' });
         }
-        if (!['INGRESO', 'BAJA', 'SALIDA'].includes(tipo_movimiento)) {
+        if (!['INGRESO', 'AJUSTE', 'SALIDA'].includes(tipo_movimiento)) {
             return res.status(400).json({ error: 'Tipo de movimiento no válido' });
         }
 
         await client.query('BEGIN'); 
 
-        if (tipo_movimiento === 'BAJA' || tipo_movimiento === 'SALIDA') {
+        if (tipo_movimiento === 'AJUSTE' || tipo_movimiento === 'SALIDA') {
             const stockRes = await client.query('SELECT stock_actual, nombre FROM productos WHERE id = $1', [producto_id]);
             const producto = stockRes.rows[0];
             
