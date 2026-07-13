@@ -2,30 +2,57 @@
 const pool = require('../config/db');
 
 const obtenerProductos = async (req, res) => {
+    const { categoria_id, proveedor_id } = req.query;
+
     try {
-        // Ahora al hacer SELECT *, también traerá la nueva columna imagen_url
-        const result = await pool.query('SELECT * FROM productos WHERE activo = TRUE ORDER BY id ASC');
+        let query = `
+            SELECT 
+                p.*, 
+                c.nombre AS categoria_nombre, 
+                pr.nombre_comercial AS proveedor_nombre
+            FROM productos p
+            LEFT JOIN categorias c ON p.categoria_id = c.id
+            LEFT JOIN proveedores pr ON p.id_proveedor = pr.id_proveedor
+            WHERE p.activo = TRUE
+        `;
+        
+        const values = [];
+        let counter = 1;
+
+        if (categoria_id) {
+            query += ` AND p.categoria_id = $${counter}`;
+            values.push(categoria_id);
+            counter++;
+        }
+
+        if (proveedor_id) {
+            query += ` AND p.id_proveedor = $${counter}`;
+            values.push(proveedor_id);
+            counter++;
+        }
+
+        query += ` ORDER BY p.id ASC`;
+
+        const result = await pool.query(query, values);
         res.json(result.rows);
     } catch (error) {
-        console.error(error);
+        console.error("Error al obtener productos:", error);
         res.status(500).json({ error: 'Error al obtener los productos' });
     }
 };
 
 const crearProducto = async (req, res) => {
-    const { nombre, descripcion, precio, stock_actual, categoria_id, etiquetas } = req.body;
-    
-    // Capturamos la URL de Cloudinary si se subió un archivo
+    const { nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, id_proveedor } = req.body;
     const imagen_url = req.file ? req.file.path : null;
 
     try {
         const result = await pool.query(
-            'INSERT INTO productos (nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, imagen_url) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-            [nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, imagen_url]
+            'INSERT INTO productos (nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, imagen_url, id_proveedor) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+            [nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, imagen_url, id_proveedor || null]
         );
         res.status(201).json(result.rows[0]);
     } catch (error) {
-        console.error(error);
+        console.error("Error al crear producto:", error);
         res.status(500).json({ error: 'Error al crear el producto' });
     }
 };
@@ -36,7 +63,7 @@ const eliminarProducto = async (req, res) => {
         await pool.query('UPDATE productos SET activo = FALSE WHERE id = $1', [id]);
         res.json({ mensaje: 'Producto eliminado correctamente (oculto del sistema)' });
     } catch (error) {
-        console.error(error);
+        console.error("Error al eliminar producto:", error);
         res.status(500).json({ error: 'Error al eliminar el producto' });
     }
 };
@@ -61,14 +88,14 @@ const actualizarPrecio = async (req, res) => {
         });
         
     } catch (error) {
-        console.error(error);
+        console.error("Error al actualizar precio:", error);
         res.status(500).json({ error: 'Error al actualizar el precio' });
-    } // <-- Faltaba cerrar esta llave del catch
+    }
 };
 
 const actualizarProducto = async (req, res) => {
     const { id } = req.params;
-    const { nombre, descripcion, precio, stock_actual, categoria_id, etiquetas } = req.body;
+    const { nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, id_proveedor } = req.body;
     
     const imagen_url = req.file ? req.file.path : null;
 
@@ -76,16 +103,14 @@ const actualizarProducto = async (req, res) => {
         let result;
         
         if (imagen_url) {
-            // Si el usuario subió una NUEVA imagen, actualizamos también la imagen_url
             result = await pool.query(
-                'UPDATE productos SET nombre = $1, descripcion = $2, precio = $3, stock_actual = $4, categoria_id = $5, etiquetas = $6, imagen_url = $7 WHERE id = $8 RETURNING *',
-                [nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, imagen_url, id]
+                'UPDATE productos SET nombre = $1, descripcion = $2, precio = $3, stock_actual = $4, categoria_id = $5, etiquetas = $6, imagen_url = $7, id_proveedor = $8 WHERE id = $9 RETURNING *',
+                [nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, imagen_url, id_proveedor || null, id]
             );
         } else {
-            // Si no subió imagen, mantenemos la que ya tenía y actualizamos solo el texto
             result = await pool.query(
-                'UPDATE productos SET nombre = $1, descripcion = $2, precio = $3, stock_actual = $4, categoria_id = $5, etiquetas = $6 WHERE id = $7 RETURNING *',
-                [nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, id]
+                'UPDATE productos SET nombre = $1, descripcion = $2, precio = $3, stock_actual = $4, categoria_id = $5, etiquetas = $6, id_proveedor = $7 WHERE id = $8 RETURNING *',
+                [nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, id_proveedor || null, id]
             );
         }
 
@@ -97,11 +122,9 @@ const actualizarProducto = async (req, res) => {
             producto: result.rows[0]
         });
     } catch (error) {
-        console.error(error);
+        console.error("Error al actualizar producto:", error);
         res.status(500).json({ error: 'Error al actualizar el producto' });
     }
 };
-
-
 
 module.exports = { obtenerProductos, crearProducto, eliminarProducto, actualizarPrecio, actualizarProducto };
