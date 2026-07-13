@@ -4,7 +4,7 @@ const { registrarMovimiento, obtenerHistorialMovimientos } = require('../control
 const { verificarToken, verificarAdmin } = require('../middleware/authMiddleware');
 
 const verificarLogistica = (req, res, next) => {
-    if (req.user.rol !== 'ADMIN' && req.user.rol !== 'ALMACEN') {
+    if (req.user.rol !== 'ADMIN' && req.user.rol !== 'ALMACENERO') {
         return res.status(403).json({ error: 'Acceso denegado' });
     }
     next();
