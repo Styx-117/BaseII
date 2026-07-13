@@ -4,7 +4,6 @@ import { getUser } from '../auth.js';
 export async function renderAuditoria(container) {
     const user = getUser();
 
-    // Protección extra: Si no es ADMIN, rebota al usuario
     if (user.rol !== 'ADMIN') {
         container.innerHTML = `<div class="alert alert-danger text-center mt-5">Acceso exclusivo para el Administrador del Sistema.</div>`;
         return;
@@ -12,7 +11,7 @@ export async function renderAuditoria(container) {
 
     container.innerHTML = `
         <div class="d-flex justify-content-between mb-4 align-items-center">
-            <h3><i class="fas fa-history text-dark me-2"></i> Auditoría de Precios (Triggers)</h3>
+            <h3><i class="fas fa-history text-dark me-2"></i> Auditoría de Precios</h3>
             <span class="badge bg-dark p-2"><i class="fas fa-shield-alt me-1"></i> Control de Integridad</span>
         </div>
 
@@ -42,7 +41,6 @@ export async function renderAuditoria(container) {
 
 async function cargarTablaAuditoria() {
     try {
-        // Hacemos la petición a tu controlador de auditoría
         const logs = await api.get('/auditoria');
         const tbody = document.getElementById('tabla-auditoria');
 
@@ -52,14 +50,12 @@ async function cargarTablaAuditoria() {
         }
 
         tbody.innerHTML = logs.map(log => {
-            // Mapeo adaptativo por si tus columnas en la BD se llaman ligeramente diferente
             const producto = log.producto_nombre || log.producto || 'Producto Eliminado';
             const precioViejo = parseFloat(log.precio_anterior || log.precio_viejo || 0);
             const precioNuevo = parseFloat(log.precio_nuevo || log.precio_actual || 0);
-            const responsable = log.usuario_nombre || log.responsable || 'Sistema (Trigger)';
+            const responsable = log.usuario_nombre || log.responsable || 'Sistema';
             const fecha = new Date(log.fecha_cambio || log.fecha || log.creado_en).toLocaleString();
 
-            // Calcular la diferencia monetaria y el porcentaje de cambio
             const diferencia = precioNuevo - precioViejo;
             let indicadorVisual = '';
 
