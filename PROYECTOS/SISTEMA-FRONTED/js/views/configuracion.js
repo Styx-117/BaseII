@@ -41,7 +41,7 @@ export function renderConfiguracion(container) {
         if (activado) {
             localStorage.setItem('tema_sistema', 'oscuro');
             document.body.style.backgroundColor = '#212529'; 
-            alert("Preferencia guardada. (Puedes implementar CSS dinámico aquí en el futuro)");
+            alert("Preferencia guardada. Recarga la página para aplicar el modo oscuro.");
         } else {
             localStorage.setItem('tema_sistema', 'claro');
             document.body.style.backgroundColor = ''; 

@@ -9,6 +9,7 @@ import { renderClientes } from './views/clientes.js';
 import { renderProveedores } from './views/proveedores.js';
 import { renderPerfil } from './views/perfil.js';
 import { renderConfiguracion } from './views/configuracion.js';
+import { renderAuditoria } from './views/auditoria.js'; 
 
 const app = document.getElementById('app');
 
@@ -107,9 +108,11 @@ function renderDashboard(user) {
                         <a href="#" class="nav-link text-muted small text-uppercase fw-bold">Administración</a>
                         <ul class="nav flex-column ps-3 mt-2">
                             <li><a href="#usuarios" class="nav-link"><span class="dot bg-danger"></span> Usuarios</a></li>
+                            <li><a href="#auditoria" class="nav-link"><span class="dot bg-dark"></span> Historial de Precios</a></li>
                         </ul>
                     </li>
                     ` : ''}
+                    
 
                     <li class="nav-item mt-auto pt-5">
                         <button id="logout" class="btn btn-outline-light btn-sm w-100 mt-5">
@@ -331,6 +334,13 @@ function renderDashboard(user) {
         document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
         e.currentTarget.classList.add('active');
         renderHomeCards();
+    });
+
+    document.querySelector('a[href="#auditoria"]')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        renderAuditoria(viewContent); 
     });
 
     // Cerrar sesión
