@@ -4,7 +4,7 @@ const { obtenerProveedores, crearProveedor, actualizarProveedor, cambiarEstadoPr
 const { verificarToken } = require('../middleware/authMiddleware');
 
 const verificarLogistica = (req, res, next) => {
-    if (req.user.rol !== 'ADMIN' && req.user.rol !== 'ALMACEN') {
+    if (req.user.rol !== 'ADMIN' && req.user.rol !== 'ALMACENERO') {
         return res.status(403).json({ error: 'Acceso denegado: Exclusivo para Logística y Administración' });
     }
     next();
