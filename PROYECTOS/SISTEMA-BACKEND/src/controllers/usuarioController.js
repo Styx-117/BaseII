@@ -129,9 +129,60 @@ const cambiarEstadoUsuario = async (req, res) => {
     }
 };
 
+const actualizarMiPerfil = async (req, res) => {
+    const { id } = req.params;
+    const { nombre_completo, email, password } = req.body;
+
+    if (req.user.id !== parseInt(id) && req.user.rol !== 'ADMIN') {
+        return res.status(403).json({ error: 'Acceso denegado: Solo puedes editar tu propio perfil.' });
+    }
+
+    try {
+        let query, values;
+
+        if (password) {
+            const salt = await bcrypt.genSalt(10);
+            const password_hash = await bcrypt.hash(password, salt);
+            
+            query = `
+                UPDATE usuarios 
+                SET nombre_completo = $1, email = $2, password_hash = $3 
+                WHERE id = $4 RETURNING id, nombre_completo, email, rol
+            `;
+            values = [nombre_completo, email, password_hash, id];
+        } else {
+            query = `
+                UPDATE usuarios 
+                SET nombre_completo = $1, email = $2 
+                WHERE id = $3 RETURNING id, nombre_completo, email, rol
+            `;
+            values = [nombre_completo, email, id];
+        }
+
+        const result = await pool.query(query, values);
+        
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        res.json({ 
+            mensaje: 'Perfil actualizado con éxito', 
+            usuario: result.rows[0] 
+        });
+
+    } catch (error) {
+        console.error("Error al actualizar perfil:", error);
+        if (error.code === '23505') {
+            return res.status(400).json({ error: 'Este correo electrónico ya está en uso por otra persona.' });
+        }
+        res.status(500).json({ error: 'Error interno al actualizar el perfil' });
+    }
+};
+
 module.exports = {
     obtenerUsuarios,
     crearUsuario,
     actualizarUsuario,
-    cambiarEstadoUsuario
+    cambiarEstadoUsuario,
+    actualizarMiPerfil
 };

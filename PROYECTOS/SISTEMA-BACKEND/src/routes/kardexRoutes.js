@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { registrarMovimiento, obtenerHistorialMovimientos } = require('../controllers/movimientoController');
+const { registrarMovimiento, obtenerHistorialMovimientos } = require('../controllers/kardexController');
 const { verificarToken, verificarAdmin } = require('../middleware/authMiddleware');
 
 const verificarLogistica = (req, res, next) => {
