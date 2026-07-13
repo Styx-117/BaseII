@@ -69,7 +69,7 @@ function renderDashboard(user) {
         <div class="d-flex bg-light vh-100 overflow-hidden">
             <nav class="sidebar p-3 overflow-auto" style="min-width: 260px;">
                 <div class="brand-logo mb-4 px-2">
-                    <h4>PROYECTO BD</h4>
+                    <h4>LA BODEGA DE DON PEPITO</h4>
                 </div>
 
                 <ul class="nav flex-column">
