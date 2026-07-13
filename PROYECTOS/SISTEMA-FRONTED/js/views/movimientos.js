@@ -1,4 +1,3 @@
-//movimientos.js
 import { api } from '../api.js';
 
 export async function renderMovimientos(container) {
@@ -117,19 +116,19 @@ async function cargarTablaMovimientos() {
             return `
             <tr>
                 <td>${new Date(m.fecha_movimiento).toLocaleString()}</td>
-                <td class="fw-bold">${m.producto_nombre}</td>
+                <td class="fw-bold">${m.producto}</td>
                 <td><span class="badge ${badgeClass}"><i class="fas ${iconClass} me-1"></i> ${m.tipo_movimiento}</span></td>
                 <td class="fw-bold ${esIngreso ? 'text-success' : 'text-danger'}">
                     ${esIngreso ? '+' : '-'}${m.cantidad}
                 </td>
                 <td class="text-muted small">${m.motivo}</td>
-                <td><span class="badge bg-light text-dark border">${m.usuario_nombre}</span></td>
+                <td><span class="badge bg-light text-dark border">${m.responsable}</span></td>
             </tr>
             `;
         }).join('');
 
     } catch (err) {
-        document.getElementById('tabla-movimientos').innerHTML = `<tr><td colspan="6" class="text-danger text-center">Error al cargar kardex</td></tr>`;
+        document.getElementById('tabla-movimientos').innerHTML = `<tr><td colspan="6" class="text-danger text-center">Error al cargar historial</td></tr>`;
     }
 }
 
