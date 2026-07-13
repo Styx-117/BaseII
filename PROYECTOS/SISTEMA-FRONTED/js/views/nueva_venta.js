@@ -19,22 +19,29 @@ export async function renderNuevaVenta(container) {
                 <div class="card border-0 shadow-sm p-4 mb-4">
                     <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-user-tag text-muted me-2"></i> Datos del Cliente</h5>
                     <div class="mb-3">
-                        <label class="form-label small text-muted">Seleccionar Cliente (Fragmentación Vertical)</label>
+                        <label class="form-label small text-muted">Seleccionar Cliente</label>
                         <select id="venta-cliente" class="form-select" required>
                             <option value="">Seleccione un cliente...</option>
-                            </select>
+                        </select>
                     </div>
                 </div>
 
                 <div class="card border-0 shadow-sm p-4">
                     <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-box text-muted me-2"></i> Añadir al Carrito</h5>
                     <form id="form-add-carrito">
+                        
                         <div class="mb-3">
-                            <label class="form-label small text-muted">Producto</label>
+                            <label class="form-label small text-muted fw-bold text-primary"><i class="fas fa-search"></i> Buscar Producto</label>
+                            <input type="text" id="buscar-producto" class="form-control border-primary" placeholder="Digita el nombre para filtrar...">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Producto Seleccionado</label>
                             <select id="venta-producto" class="form-select" required>
-                                <option value="">Cargando productos...</option>
+                                <option value="">Cargando catálogo...</option>
                             </select>
                         </div>
+
                         <div class="row g-3 mb-3">
                             <div class="col-6">
                                 <label class="form-label small text-muted">Precio Unitario</label>
@@ -76,7 +83,7 @@ export async function renderNuevaVenta(container) {
                                 </tr>
                             </thead>
                             <tbody id="tabla-carrito">
-                                <tr><td colspan="5" class="text-center text-muted py-4">El carrito está vacío. Añade productos para empezar.</td></tr>
+                                <tr><td colspan="5" class="text-center text-muted py-4">El carrito está vacío.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -95,9 +102,78 @@ export async function renderNuevaVenta(container) {
                 </div>
             </div>
         </div>
+
+        <div class="modal fade" id="modalComprobanteVenta" data-bs-backdrop="static" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title fw-bold"><i class="fas fa-check-circle me-2"></i> ¡Venta Procesada Con Éxito!</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="area-impresion-comprobante">
+                        <div class="text-center mb-3">
+                            <h5 class="fw-bold mb-0">BODEGA DON PEPITO</h5>
+                            <small class="text-muted">Ticket de Venta Electrónico</small>
+                        </div>
+                        <hr class="border-dashed">
+                        <div class="row small mb-3">
+                            <div class="col-7">
+                                <b>Operación:</b> #<span id="comp-id">000</span><br>
+                                <b>Cliente:</b> <span id="comp-cliente">---</span>
+                            </div>
+                            <div class="col-5 text-end text-muted">
+                                <span id="comp-fecha">--/--/----</span>
+                            </div>
+                        </div>
+                        <table class="table table-sm table-borderless small mt-2">
+                            <thead>
+                                <tr class="border-bottom">
+                                    <th>Descrip.</th>
+                                    <th class="text-center">Cant.</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-comprobante-productos"></tbody>
+                            <tfoot>
+                                <tr class="border-top fw-bold fs-6">
+                                    <td colspan="2" class="pt-2">TOTAL PAGADO:</td>
+                                    <td class="text-end text-success pt-2" id="comp-total">S/ 0.00</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Nueva Venta (Cerrar)</button>
+                        <button type="button" class="btn btn-success fw-bold" id="btn-imprimir-comprobante">
+                            <i class="fas fa-print"></i> Imprimir Ticket
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     `;
 
     await Promise.all([cargarClientesSelect(), cargarProductosSelect()]);
+
+    document.getElementById('buscar-producto').addEventListener('input', (e) => {
+        const valorBusqueda = e.target.value.toLowerCase();
+        const selectProducto = document.getElementById('venta-producto');
+        
+        selectProducto.innerHTML = '<option value="">Seleccione un producto...</option>';
+        
+        const filtrados = productosDisponibles.filter(p => p.nombre.toLowerCase().includes(valorBusqueda));
+
+        if (filtrados.length === 0) {
+            selectProducto.innerHTML = '<option value="">No se encontraron coincidencias</option>';
+            return;
+        }
+
+        filtrados.forEach(p => {
+            if (p.stock_actual > 0) {
+                selectProducto.innerHTML += `<option value="${p.id}">${p.nombre} (Dispo: ${p.stock_actual})</option>`;
+            }
+        });
+    });
 
     document.getElementById('venta-producto').addEventListener('change', (e) => {
         const prodId = parseInt(e.target.value);
@@ -110,7 +186,7 @@ export async function renderNuevaVenta(container) {
         if (producto) {
             inputPrecio.value = parseFloat(producto.precio).toFixed(2);
             inputCantidad.max = producto.stock_actual;
-            labelStock.innerHTML = `Stock disponible: <b class="${producto.stock_actual <= 5 ? 'text-danger' : 'text-success'}">${producto.stock_actual} unidades</b>`;
+            labelStock.innerHTML = `Stock disponible: <b class="${producto.stock_actual <= 5 ? 'text-danger' : 'text-success'}">${producto.stock_actual} unids.</b>`;
         } else {
             inputPrecio.value = '';
             inputCantidad.removeAttribute('max');
@@ -129,14 +205,14 @@ export async function renderNuevaVenta(container) {
         if (!producto) return;
 
         if (cantidad > producto.stock_actual) {
-            alert(`No puedes añadir esa cantidad. Solo hay ${producto.stock_actual} unidades disponibles.`);
+            alert(`Stock insuficiente en base de datos.`);
             return;
         }
 
         const existe = carrito.find(item => item.producto_id === productoId);
         if (existe) {
             if ((existe.cantidad + cantidad) > producto.stock_actual) {
-                alert(`La suma total en el carrito supera el stock físico disponible.`);
+                alert(`La cantidad acumulada supera el stock físico.`);
                 return;
             }
             existe.cantidad += cantidad;
@@ -152,18 +228,18 @@ export async function renderNuevaVenta(container) {
         }
 
         document.getElementById('form-add-carrito').reset();
+        document.getElementById('buscar-producto').value = ''; 
         document.getElementById('stock-disponible-label').innerText = 'Stock disponible: -';
         actualizarVistaCarrito();
     });
 
     document.getElementById('btn-procesar-venta').addEventListener('click', async () => {
-        const clienteId = document.getElementById('venta-cliente').value;
+        const selectCliente = document.getElementById('venta-cliente');
+        const clienteId = selectCliente.value;
+        const btnProcesar = document.getElementById('btn-procesar-venta');
+
         if (!clienteId) {
             alert("Por favor, selecciona un cliente para la facturación.");
-            return;
-        }
-
-        if (!confirm(`¿Confirmar cobro de la venta por un total de ${document.getElementById('total-carrito').innerText}?`)) {
             return;
         }
 
@@ -177,18 +253,62 @@ export async function renderNuevaVenta(container) {
         };
 
         try {
-            await api.post('/ventas', payload);
-            alert("¡Venta registrada con éxito y stock actualizado!");
+            btnProcesar.disabled = true;
+            btnProcesar.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Registrando Venta...`;
+
+            const res = await api.post('/ventas', payload);
             
-            window.location.hash = '#ventas';
+            document.getElementById('comp-id').innerText = res.venta_id || 'NUEVA';
+            document.getElementById('comp-cliente').innerText = selectCliente.options[selectCliente.selectedIndex].text;
+            document.getElementById('comp-fecha').innerText = new Date().toLocaleString();
+            document.getElementById('comp-total').innerText = document.getElementById('total-carrito').innerText;
+
+            const tbodyComp = document.getElementById('tabla-comprobante-productos');
+            tbodyComp.innerHTML = carrito.map(item => `
+                <tr>
+                    <td>${item.nombre}</td>
+                    <td class="text-center">x${item.cantidad}</td>
+                    <td class="text-end">S/ ${item.total_item.toFixed(2)}</td>
+                </tr>
+            `).join('');
+
+            const modalComprobante = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalComprobanteVenta'));
+            modalComprobante.show();
+
         } catch (err) {
             alert("Error al procesar la venta: " + err.message);
+            btnProcesar.disabled = false;
+            btnProcesar.innerHTML = `<i class="fas fa-cash-register me-2"></i> Procesar y Generar Venta`;
         }
     });
 
-    document.getElementById('btn-regresar-ventas').addEventListener('click', (e) => {
-        e.preventDefault();
-        window.location.hash = '#ventas';
+    document.getElementById('modalComprobanteVenta').addEventListener('hidden.bs.modal', async () => {
+        carrito = [];
+        actualizarVistaCarrito();
+        document.getElementById('venta-cliente').value = '';
+        document.getElementById('form-add-carrito').reset();
+        document.getElementById('buscar-producto').value = '';
+        document.getElementById('stock-disponible-label').innerText = 'Stock disponible: -';
+        
+        await cargarProductosSelect();
+    });
+
+    document.getElementById('btn-imprimir-comprobante').addEventListener('click', () => {
+        const contenido = document.getElementById('area-impresion-comprobante').innerHTML;
+        const ventanaOriginal = document.body.innerHTML;
+        
+        document.body.innerHTML = `
+            <div style="padding: 20px; font-family: monospace; max-width: 350px; margin: auto;">
+                <hr>
+                ${contenido}
+                <hr>
+                <p class="text-center small">¡Gracias por su compra!</p>
+            </div>
+        `;
+        window.print(); 
+        
+        document.body.innerHTML = ventanaOriginal;
+        window.location.reload(); 
     });
 }
 
@@ -198,14 +318,14 @@ function actualizarVistaCarrito() {
     const btnProcesar = document.getElementById('btn-procesar-venta');
 
     if (carrito.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">El carrito está vacío. Añade productos para empezar.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">El carrito está vacío.</td></tr>';
         totalLabel.innerText = 'S/ 0.00';
         btnProcesar.disabled = true;
+        btnProcesar.innerHTML = `<i class="fas fa-cash-register me-2"></i> Procesar y Generar Venta`;
         return;
     }
 
     let subtotalGeneral = 0;
-
     tbody.innerHTML = carrito.map((item, index) => {
         subtotalGeneral += item.total_item;
         return `
@@ -226,11 +346,10 @@ function actualizarVistaCarrito() {
     totalLabel.innerText = `S/ ${subtotalGeneral.toFixed(2)}`;
     btnProcesar.disabled = false;
 
-    
     document.querySelectorAll('.btn-quitar-item').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const index = parseInt(e.currentTarget.dataset.index);
-            carrito.splice(index, 1); 
+            carrito.splice(index, 1);
             actualizarVistaCarrito();
         });
     });
@@ -244,7 +363,7 @@ async function cargarClientesSelect() {
             select.innerHTML += `<option value="${c.id}">${c.nombre} (${c.documento || 'Sin Doc'})</option>`;
         });
     } catch (err) {
-        console.error("Error cargando clientes para venta", err);
+        console.error("Error cargando clientes", err);
     }
 }
 
@@ -260,7 +379,6 @@ async function cargarProductosSelect() {
             }
         });
     } catch (err) {
-        console.error("Error cargando productos para venta", err);
-        document.getElementById('venta-producto').innerHTML = '<option value="">Error al cargar catálogo</option>';
+        console.error("Error cargando productos", err);
     }
 }
