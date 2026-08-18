@@ -7,4 +7,4 @@ Creditos:
 
 Nota: 17!
 
-Comentario (Styx): Me encantó hacer este proyecto. Las dos noches de desvelo y payasadas, increible.
+
