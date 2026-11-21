@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: icamarket
+    runtime: node
+    rootDir: PROYECTOS
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: icamarket-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: INITIAL_ADMIN_PASSWORD
+        generateValue: true
+      - key: INITIAL_CAJERO_PASSWORD
+        generateValue: true
+      - key: INITIAL_ALMACENERO_PASSWORD
+        generateValue: true
+
+databases:
+  - name: icamarket-db
+    databaseName: icamarket
+    user: icamarket

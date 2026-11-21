@@ -74,8 +74,8 @@ const actualizarPrecio = async (req, res) => {
 
     try {
         const result = await pool.query(
-            'UPDATE productos SET precio = $1 WHERE id = $2 RETURNING *',
-            [nuevo_precio, id]
+            'UPDATE productos SET precio = $1, actualizado_por = $3 WHERE id = $2 RETURNING *',
+            [nuevo_precio, id, req.user.id]
         );
 
         if (result.rowCount === 0) {
@@ -104,13 +104,13 @@ const actualizarProducto = async (req, res) => {
         
         if (imagen_url) {
             result = await pool.query(
-                'UPDATE productos SET nombre = $1, descripcion = $2, precio = $3, stock_actual = $4, categoria_id = $5, etiquetas = $6, imagen_url = $7, id_proveedor = $8 WHERE id = $9 RETURNING *',
-                [nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, imagen_url, id_proveedor || null, id]
+                'UPDATE productos SET nombre = $1, descripcion = $2, precio = $3, categoria_id = $4, etiquetas = $5, imagen_url = $6, id_proveedor = $7, actualizado_por = $9 WHERE id = $8 RETURNING *',
+                [nombre, descripcion, precio, categoria_id, etiquetas, imagen_url, id_proveedor || null, id, req.user.id]
             );
         } else {
             result = await pool.query(
-                'UPDATE productos SET nombre = $1, descripcion = $2, precio = $3, stock_actual = $4, categoria_id = $5, etiquetas = $6, id_proveedor = $7 WHERE id = $8 RETURNING *',
-                [nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, id_proveedor || null, id]
+                'UPDATE productos SET nombre = $1, descripcion = $2, precio = $3, categoria_id = $4, etiquetas = $5, id_proveedor = $6, actualizado_por = $8 WHERE id = $7 RETURNING *',
+                [nombre, descripcion, precio, categoria_id, etiquetas, id_proveedor || null, id, req.user.id]
             );
         }
 

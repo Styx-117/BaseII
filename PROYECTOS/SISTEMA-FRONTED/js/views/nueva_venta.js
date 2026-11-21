@@ -90,6 +90,8 @@ export async function renderNuevaVenta(container) {
                     </div>
 
                     <div class="border-top pt-3 mt-auto">
+                        <label for="metodo-pago" class="form-label">Método de pago</label>
+                        <select id="metodo-pago" class="form-select mb-3"><option value="EFECTIVO">Efectivo</option><option value="TARJETA">Tarjeta</option><option value="YAPE">Yape</option><option value="PLIN">Plin</option><option value="TRANSFERENCIA">Transferencia</option></select>
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h4 class="mb-0 fw-bold text-secondary">Total a Pagar:</h4>
                             <h3 class="mb-0 fw-bold text-success" id="total-carrito">S/ 0.00</h3>
@@ -256,6 +258,7 @@ export async function renderNuevaVenta(container) {
 
         const payload = {
             cliente_id: parseInt(clienteId),
+            metodo_pago: document.getElementById('metodo-pago').value,
             items: carrito.map(item => ({
                 producto_id: item.producto_id,
                 cantidad: item.cantidad,

@@ -12,7 +12,7 @@ export async function renderInventario(container) {
         <div class="card border-0 shadow-sm p-3 mb-4 bg-light">
             <div class="row g-3 align-items-center">
                 <div class="col-md-auto">
-                    <i class="fas fa-filter text-muted"></i> <span class="fw-bold text-muted small text-uppercase">Filtros (Fragmentación):</span>
+                    <i class="fas fa-filter text-muted"></i> <span class="fw-bold text-muted small text-uppercase">Filtros:</span>
                 </div>
                 <div class="col-md-4">
                     <select id="filtro-categoria" class="form-select border-0 shadow-sm">
@@ -49,7 +49,7 @@ export async function renderInventario(container) {
                                             <input type="number" id="precio" class="form-control" placeholder="0.00" step="0.01" required>
                                         </div>
                                         <div class="col-6">
-                                            <label class="form-label small text-muted">Stock Inicial</label>
+                                            <label class="form-label small text-muted">Stock (se modifica desde Kardex)</label>
                                             <input type="number" id="stock" class="form-control" placeholder="0" required>
                                         </div>
                                     </div>
@@ -139,6 +139,7 @@ export async function renderInventario(container) {
     document.getElementById('btn-nuevo').addEventListener('click', () => {
         document.getElementById('form-producto').reset();
         document.getElementById('producto-id').value = '';
+        document.getElementById('stock').readOnly = false;
         document.getElementById('modal-titulo').innerText = 'Agregar Producto';
         document.getElementById('preview-container').style.display = 'none';
         document.getElementById('preview-imagen').src = '#';
@@ -257,7 +258,8 @@ async function cargarTabla(container) {
                 document.getElementById('producto-id').value = btn.dataset.id;
                 document.getElementById('nombre').value = btn.dataset.nombre;
                 document.getElementById('precio').value = btn.dataset.precio;
-                document.getElementById('stock').value = btn.dataset.stock;
+                document.getElementById('stock').readOnly = true;
+            document.getElementById('stock').value = btn.dataset.stock;
                 document.getElementById('categoria_id').value = btn.dataset.cat;
                 document.getElementById('proveedor_id').value = btn.dataset.prov; // <--- Cargar proveedor al editar
                 document.getElementById('descripcion').value = btn.dataset.desc;

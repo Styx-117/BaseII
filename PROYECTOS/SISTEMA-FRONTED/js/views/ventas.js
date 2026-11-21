@@ -29,7 +29,7 @@ export async function renderVentas(container) {
                 ${esCajero ? '<small class="text-muted"><i class="fas fa-clock me-1"></i> Mostrando ventas recientes (últimos 3 días)</small>' : ''}
             </div>
             
-            ${esCajero ? `
+            ${(esCajero || esAdmin) ? `
                 <a href="#nueva-venta" id="btn-ir-nueva-venta" class="btn btn-success fw-bold shadow-sm">
                     <i class="fas fa-cash-register"></i> Nueva Venta
                 </a>

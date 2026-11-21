@@ -7,7 +7,7 @@ const registrarMovimiento = async (req, res) => {
         const { producto_id, tipo_movimiento, cantidad, motivo } = req.body;
         const usuario_id = req.user.id; 
 
-        if (cantidad <= 0) {
+        if (!Number.isSafeInteger(Number(cantidad)) || Number(cantidad) <= 0) {
             return res.status(400).json({ error: 'La cantidad debe ser mayor a 0' });
         }
         if (!['INGRESO', 'AJUSTE', 'SALIDA'].includes(tipo_movimiento)) {
@@ -17,7 +17,7 @@ const registrarMovimiento = async (req, res) => {
         await client.query('BEGIN'); 
 
         if (tipo_movimiento === 'AJUSTE' || tipo_movimiento === 'SALIDA') {
-            const stockRes = await client.query('SELECT stock_actual, nombre FROM productos WHERE id = $1', [producto_id]);
+            const stockRes = await client.query('SELECT stock_actual, nombre FROM productos WHERE id = $1 FOR UPDATE', [producto_id]);
             const producto = stockRes.rows[0];
             
             if (!producto) throw new Error('Producto no encontrado');

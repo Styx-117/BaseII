@@ -29,15 +29,15 @@ function renderLogin() {
     app.innerHTML = `
         <div class="d-flex justify-content-center align-items-center vh-100 bg-dark">
             <div class="card p-4 shadow" style="width: 350px;">
-                <h3 class="text-center mb-4">Iniciar Sesión</h3>
+                <div class="login-brand"><span class="brand-mark">i</span> ICA<span class="brand-accent">Market</span></div><p class="login-kicker">TU NEGOCIO, EN ORDEN</p><h3 class="mb-2">Bienvenido de nuevo</h3><p class="text-muted mb-4">Ingresa para administrar tu tienda.</p>
                 <form id="login-form">
                     <div class="mb-3">
-                        <input type="email" id="email" class="form-control" placeholder="Email" required>
+                        <input type="email" id="email" class="form-control" placeholder="Correo electrónico" autocomplete="username" required>
                     </div>
                     <div class="mb-3">
-                        <input type="password" id="password" class="form-control" placeholder="Contraseña" required>
+                        <input type="password" id="password" class="form-control" placeholder="Contraseña" autocomplete="current-password" required>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">Entrar</button>
+                    <button type="submit" class="btn btn-primary w-100">Ingresar al sistema <span aria-hidden="true">→</span></button>
                 </form>
             </div>
         </div>
@@ -74,7 +74,7 @@ function renderDashboard(user) {
         <div class="d-flex bg-light vh-100 overflow-hidden">
             <nav class="sidebar p-3 overflow-auto" style="min-width: 260px;">
                 <div class="brand-logo mb-4 px-2">
-                    <h4>SISTEMA BD</h4>
+                    <h4><span class="brand-mark">i</span> ICA<span class="brand-accent">Market</span></h4><small>VENTAS · INVENTARIO</small>
                 </div>
 
                 <ul class="nav flex-column">
@@ -174,7 +174,7 @@ function renderDashboard(user) {
     const renderHomeCards = async () => {
         const viewContent = document.getElementById('view-content');
         viewContent.innerHTML = `
-            <h4 class="mb-4 text-dark fw-bold">Resumen del Sistema</h4>
+            <h4 class="mb-4 text-dark fw-bold">Tu negocio de un vistazo</h4>
             <div class="row g-4 mb-4">
                 <div class="col-md-6 col-xl-4">
                     <div class="card p-4 border-0 shadow-sm h-100">
@@ -205,19 +205,21 @@ function renderDashboard(user) {
                 </div>
             </div>
 
-            <div class="row">
+            <div class="row g-4">
                 <div class="col-md-8">
                     <div class="card border-0 shadow-sm p-4">
                         <h6 class="fw-bold text-muted mb-4">Ingresos de los últimos 7 días</h6>
                         <canvas id="ventasChart" height="100"></canvas>
                     </div>
                 </div>
+                <div class="col-md-4"><div class="card p-4 h-100"><h6 class="fw-bold">Alertas de stock</h6><p class="text-muted small">Productos con 5 unidades o menos</p><div id="stock-alertas">Cargando...</div></div></div>
             </div>
         `;
 
         try {
             const stats = await api.get('/dashboard/stats');
 
+            document.getElementById('stock-alertas').replaceChildren(...(stats.alertas.length ? stats.alertas.map(item => { const row = document.createElement('div'); row.className = 'alert-row'; row.textContent = `${item.nombre} · ${item.stock_actual} unidades`; return row; }) : [document.createTextNode('No hay productos con stock crítico.')]));
             document.getElementById('dash-usuarios').innerText = stats.usuarios;
             document.getElementById('dash-ingresos').innerText = 'S/ ' + stats.ingresos.toFixed(2);
 
@@ -235,7 +237,7 @@ function renderDashboard(user) {
                     datasets: [{
                         label: 'Ventas (S/)',
                         data: totalesSoles.length > 0 ? totalesSoles : [0],
-                        backgroundColor: '#0d6efd',
+                        backgroundColor: '#f07a46',
                         borderRadius: 6
                     }]
                 },
