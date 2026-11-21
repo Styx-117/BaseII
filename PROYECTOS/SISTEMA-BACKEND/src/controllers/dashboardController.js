@@ -22,7 +22,9 @@ const getStats = async (req, res) => {
 `;
         const chartRes = await pool.query(chartQuery);
         
+        const alertas = await pool.query('SELECT id, nombre, stock_actual FROM productos WHERE activo = true AND stock_actual <= 5 ORDER BY stock_actual, nombre LIMIT 10');
         res.json({
+            alertas: alertas.rows,
             ingresos: totalIngresos,
             usuarios: totalUsuarios,
             grafica: chartRes.rows

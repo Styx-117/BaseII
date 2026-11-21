@@ -1,4 +1,4 @@
-const BASE_URL = 'https://baseii.onrender.com/api';
+const BASE_URL = '/api';
 
 async function customFetch(endpoint, options = {}) {
     const token = localStorage.getItem('token');
@@ -23,7 +23,7 @@ async function customFetch(endpoint, options = {}) {
     const response = await fetch(`${BASE_URL}${endpoint}`, config);
     const data = await response.json();
 
-    if (response.status === 401) {
+    if (response.status === 401 && endpoint !== '/auth/login') {
         localStorage.clear();
         window.location.reload();
         throw new Error('Sesión expirada. Por favor, inicia sesión de nuevo.');

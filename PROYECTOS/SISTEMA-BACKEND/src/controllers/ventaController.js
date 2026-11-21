@@ -34,65 +34,41 @@ const obtenerVentas = async (req, res) => {
 };
 
 const registrarVenta = async (req, res) => {
-    const client = await pool.connect();
-
-    try {
-        const { cliente_id, metodo_pago, items } = req.body;
-        const usuario_id = req.user.id; 
-
-        if (!items || items.length === 0) {
-            return res.status(400).json({ error: 'No se puede procesar una venta sin productos en el carrito.' });
-        }
-
-        await client.query('BEGIN');
-        let totalCalculado = 0;
-        items.forEach(item => {
-            totalCalculado += item.cantidad * parseFloat(item.precio_unitario);
-        });
-
-        const insertVentaQuery = `
-            INSERT INTO ventas (cliente_id, usuario_id, total, metodo_pago) 
-            VALUES ($1, $2, $3, $4) RETURNING id
-        `;
-        const resVenta = await client.query(insertVentaQuery, [
-            cliente_id, 
-            usuario_id, 
-            totalCalculado, 
-            metodo_pago || 'EFECTIVO'
-        ]);
-        const ventaId = resVenta.rows[0].id;
-
-        for (let i = 0; i < items.length; i++) {
-            const item = items[i];
-
-            const insertDetalle = `
-                INSERT INTO detalle_ventas (venta_id, producto_id, cantidad, precio_unitario) 
-                VALUES ($1, $2, $3, $4)
-            `;
-            await client.query(insertDetalle, [ventaId, item.producto_id, item.cantidad, item.precio_unitario]);
-
-            const updateStock = 'UPDATE productos SET stock_actual = stock_actual - $1 WHERE id = $2';
-            await client.query(updateStock, [item.cantidad, item.producto_id]);
-            const insertKardex = `
-                INSERT INTO movimientos_inventario (producto_id, usuario_id, tipo_movimiento, cantidad, motivo) 
-                VALUES ($1, $2, $3, $4, $5)
-            `;
-            const motivoVenta = `Venta POS #${ventaId}`;
-            await client.query(insertKardex, [item.producto_id, usuario_id, 'SALIDA', item.cantidad, motivoVenta]);
-        }
-
-        await client.query('COMMIT'); 
-        res.status(201).json({ mensaje: 'Venta registrada y Kardex actualizado con éxito', venta_id: ventaId });
-
-    } catch (error) {
-        await client.query('ROLLBACK'); 
-        console.error('Error en la transacción de venta:', error);
-        res.status(500).json({ error: 'Error interno al procesar la transacción de la venta' });
-    } finally {
-        client.release(); 
+    const { cliente_id, metodo_pago = 'EFECTIVO', items } = req.body;
+    if (!Array.isArray(items) || !items.length || !['EFECTIVO','TARJETA','YAPE','PLIN','TRANSFERENCIA'].includes(metodo_pago)) return res.status(400).json({error:'Revisa los productos y el método de pago.'});
+    const cantidades = new Map();
+    for (const item of items) {
+        const id = Number(item.producto_id), cantidad = Number(item.cantidad);
+        if (!Number.isSafeInteger(id) || id <= 0 || !Number.isSafeInteger(cantidad) || cantidad <= 0) return res.status(400).json({error:'Producto o cantidad no válida.'});
+        cantidades.set(id, (cantidades.get(id) || 0) + cantidad);
     }
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const productos = [];
+        let totalCentimos = 0;
+        for (const [id, cantidad] of [...cantidades].sort((a,b) => a[0]-b[0])) {
+            const result = await client.query('SELECT id,nombre,precio,stock_actual FROM productos WHERE id=$1 AND activo=TRUE FOR UPDATE', [id]);
+            const producto = result.rows[0];
+            if (!producto || producto.stock_actual < cantidad) { const err = new Error(producto ? `Stock insuficiente para ${producto.nombre}` : 'Producto no disponible'); err.status=400; throw err; }
+            totalCentimos += Math.round(Number(producto.precio)*100)*cantidad;
+            productos.push({id,cantidad,precio:producto.precio});
+        }
+        const venta = await client.query('INSERT INTO ventas(cliente_id,usuario_id,total,metodo_pago) VALUES($1,$2,$3,$4) RETURNING id',[cliente_id || null,req.user.id,(totalCentimos/100).toFixed(2),metodo_pago]);
+        const id = venta.rows[0].id;
+        for (const producto of productos) {
+            await client.query('INSERT INTO detalle_ventas(venta_id,producto_id,cantidad,precio_unitario) VALUES($1,$2,$3,$4)',[id,producto.id,producto.cantidad,producto.precio]);
+            await client.query('UPDATE productos SET stock_actual=stock_actual-$1 WHERE id=$2',[producto.cantidad,producto.id]);
+            await client.query("INSERT INTO movimientos_inventario(producto_id,usuario_id,tipo_movimiento,cantidad,motivo) VALUES($1,$2,'SALIDA',$3,$4)",[producto.id,req.user.id,producto.cantidad,`Venta POS #${id}`]);
+        }
+        await client.query('COMMIT');
+        res.status(201).json({mensaje:'Venta registrada y stock actualizado',venta_id:id});
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error en venta:',error.message);
+        res.status(error.status || 500).json({error:error.status ? error.message : 'No se pudo procesar la venta.'});
+    } finally { client.release(); }
 };
-
 
 const obtenerVentaConId = async (req, res) => {
     const { id } = req.params;
