@@ -7,6 +7,7 @@ const registrarMovimiento = async (req, res) => {
         const { producto_id, tipo_movimiento, cantidad, motivo } = req.body;
         const usuario_id = req.user.id; 
 
+        if (typeof motivo !== 'string' || !motivo.trim() || motivo.length > 255) return res.status(400).json({error:'Escribe un motivo de hasta 255 caracteres.'});
         if (!Number.isSafeInteger(Number(cantidad)) || Number(cantidad) <= 0) {
             return res.status(400).json({ error: 'La cantidad debe ser mayor a 0' });
         }
@@ -16,21 +17,17 @@ const registrarMovimiento = async (req, res) => {
 
         await client.query('BEGIN'); 
 
-        if (tipo_movimiento === 'AJUSTE' || tipo_movimiento === 'SALIDA') {
-            const stockRes = await client.query('SELECT stock_actual, nombre FROM productos WHERE id = $1 FOR UPDATE', [producto_id]);
-            const producto = stockRes.rows[0];
-            
-            if (!producto) throw new Error('Producto no encontrado');
-            if (producto.stock_actual < cantidad) {
-                throw new Error(`Stock insuficiente. Solo hay ${producto.stock_actual} unidades de ${producto.nombre}`);
-            }
+        const result = await client.query('SELECT stock_actual FROM productos WHERE id=$1 AND activo FOR UPDATE', [producto_id]);
+        if (!result.rowCount || (tipo_movimiento !== 'INGRESO' && result.rows[0].stock_actual < Number(cantidad))) {
+            await client.query('ROLLBACK');
+            return res.status(409).json({error: result.rowCount ? 'Stock insuficiente para esta salida.' : 'Producto no disponible.'});
         }
 
         const insertMovimiento = `
             INSERT INTO movimientos_inventario (producto_id, usuario_id, tipo_movimiento, cantidad, motivo) 
             VALUES ($1, $2, $3, $4, $5) RETURNING id
         `;
-        await client.query(insertMovimiento, [producto_id, usuario_id, tipo_movimiento, cantidad, motivo]);
+
 
         let updateStockQuery;
         if (tipo_movimiento === 'INGRESO') {
@@ -40,6 +37,7 @@ const registrarMovimiento = async (req, res) => {
         }
         await client.query(updateStockQuery, [cantidad, producto_id]);
 
+        await client.query(insertMovimiento, [producto_id, usuario_id, tipo_movimiento, cantidad, motivo]);
         await client.query('COMMIT'); 
         
         res.status(201).json({ mensaje: `Movimiento de ${tipo_movimiento} registrado con éxito` });
@@ -61,7 +59,8 @@ const obtenerHistorialMovimientos = async (req, res) => {
                 m.id, 
                 p.nombre AS producto, 
                 m.tipo_movimiento, 
-                m.cantidad, 
+                m.cantidad,
+                m.saldo_despues, 
                 m.motivo, 
                 m.fecha_movimiento,
                 u.nombre_completo AS responsable
