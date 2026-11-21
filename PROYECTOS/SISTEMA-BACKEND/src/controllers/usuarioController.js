@@ -21,6 +21,17 @@ const obtenerUsuarios = async (req, res) => {
 
 // Crear usuario con imagen (opcional)
 const crearUsuario = async (req, res) => {
+    const datos = req.body || {};
+    datos.email = String(datos.email || '').trim().toLowerCase();
+    datos.nombre_completo = String(datos.nombre_completo || '').trim();
+    if (!datos.nombre_completo || datos.nombre_completo.length > 255 || datos.email.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datos.email)) {
+        return res.status(400).json({error: 'Ingresa un nombre y un correo válido.'});
+    }
+    if (!['ADMIN','CAJERO','ALMACENERO'].includes(datos.rol)) return res.status(400).json({error: 'Selecciona un rol válido.'});
+    if (!datos.password) return res.status(400).json({error: 'Ingresa una contraseña para el empleado.'});
+    if (datos.password && (typeof datos.password !== 'string' || datos.password.length < 6 || Buffer.byteLength(datos.password) > 72)) {
+        return res.status(400).json({error: 'Usa al menos 6 caracteres y hasta 72 bytes para la contraseña.'});
+    }
     const { nombre_completo, email, password, rol, genero } = req.body;
     let imagen_id = null;
 
@@ -56,6 +67,16 @@ const crearUsuario = async (req, res) => {
 
 // Actualizar usuario (incluyendo imagen)
 const actualizarUsuario = async (req, res) => {
+    const datos = req.body || {};
+    datos.email = String(datos.email || '').trim().toLowerCase();
+    datos.nombre_completo = String(datos.nombre_completo || '').trim();
+    if (!datos.nombre_completo || datos.nombre_completo.length > 255 || datos.email.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datos.email)) {
+        return res.status(400).json({error: 'Ingresa un nombre y un correo válido.'});
+    }
+    if (!['ADMIN','CAJERO','ALMACENERO'].includes(datos.rol)) return res.status(400).json({error: 'Selecciona un rol válido.'});
+    if (datos.password && (typeof datos.password !== 'string' || datos.password.length < 6 || Buffer.byteLength(datos.password) > 72)) {
+        return res.status(400).json({error: 'Usa al menos 6 caracteres y hasta 72 bytes para la contraseña.'});
+    }
     const { id } = req.params;
     const { nombre_completo, email, password, rol, genero } = req.body;
     let imagen_id = null;
@@ -130,6 +151,15 @@ const cambiarEstadoUsuario = async (req, res) => {
 };
 
 const actualizarMiPerfil = async (req, res) => {
+    const datos = req.body || {};
+    datos.email = String(datos.email || '').trim().toLowerCase();
+    datos.nombre_completo = String(datos.nombre_completo || '').trim();
+    if (!datos.nombre_completo || datos.nombre_completo.length > 255 || datos.email.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datos.email)) {
+        return res.status(400).json({error: 'Ingresa un nombre y un correo válido.'});
+    }
+    if (datos.password && (typeof datos.password !== 'string' || datos.password.length < 6 || Buffer.byteLength(datos.password) > 72)) {
+        return res.status(400).json({error: 'Usa al menos 6 caracteres y hasta 72 bytes para la contraseña.'});
+    }
     const { id } = req.params;
     const { nombre_completo, email, password } = req.body;
 

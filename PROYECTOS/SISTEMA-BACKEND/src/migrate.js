@@ -19,13 +19,24 @@ async function main() {
         console.log(`Migración aplicada: ${name}`);
       } catch (err) { await client.query('ROLLBACK'); throw err; }
     }
-    const users = [['ADMIN','Administrador','admin@icamarket.local'], ['CAJERO','Cajero','cajero@icamarket.local'], ['ALMACENERO','Almacenero','almacen@icamarket.local']];
-    for (const [role, name, email] of users) {
-      const existing = await client.query('SELECT 1 FROM usuarios WHERE email=$1', [email]);
-      if (existing.rowCount) continue;
-      const password = process.env[`INITIAL_${role}_PASSWORD`];
-      if (!password || password.length < 12) throw new Error(`Configure INITIAL_${role}_PASSWORD con al menos 12 caracteres para crear ${email}`);
-      await client.query('INSERT INTO usuarios(nombre_completo,email,password_hash,rol) VALUES($1,$2,$3,$4) ON CONFLICT(email) DO NOTHING', [name,email,await bcrypt.hash(password,12),role]);
+    await client.query('BEGIN');
+    try {
+      const users = [['ADMIN','Administrador','admin@icamarket.local'], ['CAJERO','Cajero','cajero@icamarket.local'], ['ALMACENERO','Almacenero','almacen@icamarket.local']];
+      for (const [role, name, email] of users) {
+        const initialized = await client.query('SELECT 1 FROM cuentas_iniciales WHERE rol=$1', [role]);
+        if (initialized.rowCount) continue;
+        const existing = await client.query('SELECT id FROM usuarios WHERE lower(trim(email))=$1', [email]);
+        if (!existing.rowCount) {
+          const password = process.env[`INITIAL_${role}_PASSWORD`];
+          if (!password || password.length < 12) throw new Error(`Configure INITIAL_${role}_PASSWORD con al menos 12 caracteres para crear ${email}`);
+          await client.query('INSERT INTO usuarios(nombre_completo,email,password_hash,rol) VALUES($1,$2,$3,$4) ON CONFLICT(email) DO NOTHING', [name,email,await bcrypt.hash(password,12),role]);
+        }
+        await client.query('INSERT INTO cuentas_iniciales(rol) VALUES ($1)', [role]);
+      }
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
     }
   } finally { await client.query('SELECT pg_advisory_unlock(184311)'); client.release(); await pool.end(); }
 }

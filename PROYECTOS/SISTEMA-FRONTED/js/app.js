@@ -1,5 +1,5 @@
+import { renderResumen } from './views/resumen.js';
 //app.js
-import { api } from './api.js';
 import { getUser, login } from './auth.js';
 import { renderInventario } from './views/inventario.js';
 import { renderUsuarios } from './views/usuarios.js';
@@ -27,17 +27,18 @@ function router() {
 
 function renderLogin() {
     app.innerHTML = `
-        <div class="d-flex justify-content-center align-items-center vh-100 bg-dark">
+        <div class="login-screen d-flex justify-content-center align-items-center vh-100 bg-dark">
             <div class="card p-4 shadow" style="width: 350px;">
-                <div class="login-brand"><span class="brand-mark">i</span> ICA<span class="brand-accent">Market</span></div><p class="login-kicker">TU NEGOCIO, EN ORDEN</p><h3 class="mb-2">Bienvenido de nuevo</h3><p class="text-muted mb-4">Ingresa para administrar tu tienda.</p>
+                <div class="login-brand"><span class="brand-mark">i</span> ICA<span class="brand-accent">Market</span></div><h3 class="mb-2">Bienvenido de nuevo</h3><p class="text-muted mb-4">Ingresa para administrar tu tienda.</p>
                 <form id="login-form">
                     <div class="mb-3">
-                        <input type="email" id="email" class="form-control" placeholder="Correo electrónico" autocomplete="username" required>
+                        <input type="email" id="email" class="form-control" aria-label="Correo electrónico" placeholder="Correo electrónico" autocomplete="username" required>
                     </div>
                     <div class="mb-3">
-                        <input type="password" id="password" class="form-control" placeholder="Contraseña" autocomplete="current-password" required>
+                        <input type="password" id="password" class="form-control" aria-label="Contraseña" placeholder="Contraseña" autocomplete="current-password" required>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">Ingresar al sistema <span aria-hidden="true">→</span></button>
+                    <p id="login-error" class="text-danger mt-3 mb-0" role="alert"></p>
                 </form>
             </div>
         </div>
@@ -52,7 +53,7 @@ function renderLogin() {
             await login(email, password);
             router();
         } catch (error) {
-            alert("Credenciales incorrectas: " + error.message);
+            document.getElementById('login-error').textContent = error.message;
         }
     });
 }
@@ -171,106 +172,7 @@ function renderDashboard(user) {
     `;
 
     // ========== Lógica de las vistas ==========
-    const renderHomeCards = async () => {
-        const viewContent = document.getElementById('view-content');
-        viewContent.innerHTML = `
-            <h4 class="mb-4 text-dark fw-bold">Tu negocio de un vistazo</h4>
-            <div class="row g-4 mb-4">
-                <div class="col-md-6 col-xl-4">
-                    <div class="card p-4 border-0 shadow-sm h-100">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="text-muted mb-1 small text-uppercase fw-bold">Personal Activo</h6>
-                                <h3 class="fw-bold mb-0" id="dash-usuarios"><i class="fas fa-spinner fa-spin fs-5 text-muted"></i></h3>
-                            </div>
-                            <div class="icon-box bg-primary text-white shadow-sm" style="width: 55px; height: 55px; border-radius: 15px; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-users fs-4"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-6 col-xl-4">
-                    <div class="card p-4 border-0 shadow-sm h-100">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="text-muted mb-1 small text-uppercase fw-bold">Ingresos Totales</h6>
-                                <h3 class="fw-bold mb-0 text-success" id="dash-ingresos"><i class="fas fa-spinner fa-spin fs-5 text-muted"></i></h3>
-                            </div>
-                            <div class="icon-box bg-success text-white shadow-sm" style="width: 55px; height: 55px; border-radius: 15px; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-hand-holding-usd fs-4"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="row g-4">
-                <div class="col-md-8">
-                    <div class="card border-0 shadow-sm p-4">
-                        <h6 class="fw-bold text-muted mb-4">Ingresos de los últimos 7 días</h6>
-                        <canvas id="ventasChart" height="100"></canvas>
-                    </div>
-                </div>
-                <div class="col-md-4"><div class="card p-4 h-100"><h6 class="fw-bold">Alertas de stock</h6><p class="text-muted small">Productos con 5 unidades o menos</p><div id="stock-alertas">Cargando...</div></div></div>
-            </div>
-        `;
-
-        try {
-            const stats = await api.get('/dashboard/stats');
-
-            document.getElementById('stock-alertas').replaceChildren(...(stats.alertas.length ? stats.alertas.map(item => { const row = document.createElement('div'); row.className = 'alert-row'; row.textContent = `${item.nombre} · ${item.stock_actual} unidades`; return row; }) : [document.createTextNode('No hay productos con stock crítico.')]));
-            document.getElementById('dash-usuarios').innerText = stats.usuarios;
-            document.getElementById('dash-ingresos').innerText = 'S/ ' + stats.ingresos.toFixed(2);
-
-            const etiquetasFechas = stats.grafica.map(item => {
-                const date = new Date(item.fecha);
-                return date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' });
-            });
-            const totalesSoles = stats.grafica.map(item => parseFloat(item.total_dia));
-
-            const ctx = document.getElementById('ventasChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: etiquetasFechas.length > 0 ? etiquetasFechas : ['Sin datos recientes'],
-                    datasets: [{
-                        label: 'Ventas (S/)',
-                        data: totalesSoles.length > 0 ? totalesSoles : [0],
-                        backgroundColor: '#f07a46',
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return ' S/ ' + context.parsed.y.toFixed(2);
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { borderDash: [5, 5] }
-                        },
-                        x: {
-                            grid: { display: false }
-                        }
-                    }
-                }
-            });
-
-        } catch (err) {
-            console.error("Error cargando dashboard:", err);
-            document.getElementById('dash-usuarios').innerText = '-';
-            document.getElementById('dash-ingresos').innerText = '-';
-        }
-    };
+    const renderHomeCards = () => renderResumen(viewContent, user.rol);
 
     const viewContent = document.getElementById('view-content');
 
@@ -278,11 +180,16 @@ function renderDashboard(user) {
         const hash = window.location.hash || '#dashboard';
         
         document.querySelectorAll('.sidebar .nav-link').forEach(link => link.classList.remove('active'));
-        const botonActivo = document.querySelector(`.sidebar a[href="${hash}"]`);
+        const botonActivo = Array.from(document.querySelectorAll('.sidebar a')).find(link => link.hash === hash);
         if (botonActivo) {
             botonActivo.classList.add('active');
         }
 
+        if ((esAlmacen && ['#ventas','#nueva-venta','#clientes'].includes(hash)) ||
+            (esCajero && ['#movimientos','#proveedores','#inventario'].includes(hash))) {
+            location.replace('#dashboard');
+            return;
+        }
         switch (hash) {
             case '#dashboard':
                 renderHomeCards();
@@ -324,17 +231,21 @@ function renderDashboard(user) {
         }
     };
 
-    window.addEventListener('hashchange', routerDinamico);
+    window.onhashchange = routerDinamico;
 
     routerDinamico();
     
     document.getElementById('logout-header')?.addEventListener('click', (e) => {
         e.preventDefault();
+        window.onhashchange = null;
+        history.replaceState(null, '', location.pathname);
         localStorage.clear();
         router();
     });
 
     document.getElementById('logout')?.addEventListener('click', () => {
+        window.onhashchange = null;
+        history.replaceState(null, '', location.pathname);
         localStorage.clear();
         router();
     });

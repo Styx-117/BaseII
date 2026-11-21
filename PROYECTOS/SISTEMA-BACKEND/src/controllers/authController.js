@@ -4,7 +4,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const login = async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password } = req.body || {};
+    if (typeof email !== 'string' || typeof password !== 'string' || !password) {
+        return res.status(400).json({error: 'Ingresa tu correo y contraseña.'});
+    }
 
     try {
         // Consulta con JOIN para obtener la URL de la imagen
@@ -12,7 +15,7 @@ const login = async (req, res) => {
             SELECT u.*, i.url AS imagen_url
             FROM usuarios u
             LEFT JOIN imagenes i ON u.imagen_id = i.id
-            WHERE u.email = $1 AND u.activo = true
+            WHERE lower(trim(u.email)) = lower(trim($1)) AND u.activo = true
         `;
         const result = await pool.query(query, [email]);
 

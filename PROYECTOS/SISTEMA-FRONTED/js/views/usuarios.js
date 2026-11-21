@@ -45,11 +45,11 @@ export async function renderUsuarios(container) {
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label small text-muted">Correo Electrónico (Login)</label>
-                                        <input type="email" id="email_usuario" class="form-control" placeholder="ejemplo@wowdash.com" required>
+                                        <input type="email" id="email_usuario" class="form-control" placeholder="empleado@icamarket.local" required>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label small text-muted">Contraseña</label>
-                                        <input type="password" id="password_usuario" class="form-control" placeholder="Mínimo 6 caracteres">
+                                        <input type="password" id="password_usuario" class="form-control" minlength="6" placeholder="Mínimo 6 caracteres">
                                         <small class="text-muted" id="password-helper" style="font-size: 0.75rem;">Al editar, déjalo en blanco si no deseas cambiarla.</small>
                                     </div>
                                     <div class="row">
