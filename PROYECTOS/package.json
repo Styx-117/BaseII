@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node SISTEMA-BACKEND/src/migrate.js && node SISTEMA-BACKEND/src/app.js",
     "dev": "nodemon SISTEMA-BACKEND/src/app.js",
-    "migrate": "node SISTEMA-BACKEND/src/migrate.js"
+    "migrate": "node SISTEMA-BACKEND/src/migrate.js",
+    "crear-admin": "node SISTEMA-BACKEND/src/crear-admin.js"
   },
   "keywords": [],
   "author": "",
