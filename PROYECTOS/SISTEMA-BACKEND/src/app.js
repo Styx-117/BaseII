@@ -34,6 +34,10 @@ app.get('/health', async (req, res) => {
     res.status(503).json({ok: false, database: 'unavailable'});
   }
 });
+// Cuando Express sirve la interfaz, las peticiones pertenecen a esta misma instancia.
+app.get('/js/api-base.js', (req, res) => {
+  res.type('application/javascript').send("export const apiBase = '/api';");
+});
 app.use(express.static(path.join(__dirname, '../../SISTEMA-FRONTED')));
 
 require('./migrate')().then(() => app.listen(PORT, () => {

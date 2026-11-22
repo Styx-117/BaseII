@@ -1,3 +1,5 @@
+import { consultarConexion } from '../api.js';
+
 export function renderConfiguracion(container) {
     
     const temaActual = localStorage.getItem('tema_sistema') || 'claro';
@@ -27,7 +29,7 @@ export function renderConfiguracion(container) {
                     <h5 class="fw-bold mb-3 border-bottom pb-2">Información del Sistema</h5>
                     <ul class="list-group list-group-flush text-muted small">
                         <li class="list-group-item bg-transparent px-0"><b>Versión:</b> 1.0.0 (Producción)</li>
-                        <li class="list-group-item bg-transparent px-0"><b>Base de Datos:</b> PostgreSQL</li>
+                        <li class="list-group-item bg-transparent px-0"><b>Base de datos:</b> PostgreSQL · <span id="estado-conexion" role="status">Comprobando conexión…</span></li>
                         <li class="list-group-item bg-transparent px-0"><b>Servidor:</b> Node.js / Express</li>
                         <li class="list-group-item bg-transparent px-0"><b>Desarrollado por:</b> Equipo BD</li>
                     </ul>
@@ -35,6 +37,13 @@ export function renderConfiguracion(container) {
             </div>
         </div>
     `;
+
+    const estado = container.querySelector('#estado-conexion');
+    consultarConexion().then(conectada => {
+        estado.textContent = conectada ? 'Conectada' : 'Sin conexión';
+    }).catch(() => {
+        estado.textContent = 'No se pudo verificar la conexión';
+    });
 
     document.getElementById('switch-tema').addEventListener('change', (e) => {
         const activado = e.target.checked;

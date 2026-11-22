@@ -1,4 +1,16 @@
-const BASE_URL = '/api';
+import { apiBase } from './api-base.js';
+
+const BASE_URL = new URL(apiBase, location.origin).href;
+
+export async function consultarConexion() {
+    const response = await fetch(new URL('/health', BASE_URL), {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(15000)
+    });
+    if (!response.ok) return false;
+    const estado = await response.json();
+    return estado.ok === true && estado.database === 'connected';
+}
 
 async function customFetch(endpoint, options = {}) {
     const token = localStorage.getItem('token');
