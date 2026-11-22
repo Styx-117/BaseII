@@ -18,6 +18,13 @@ async function main() {
         console.log(`Migración aplicada: ${name}`);
       } catch (err) { await client.query('ROLLBACK'); throw err; }
     }
-  } finally { await client.query('SELECT pg_advisory_unlock(184311)'); client.release(); await pool.end(); }
+  } finally { await client.query('SELECT pg_advisory_unlock(184311)'); client.release(); }
 }
-main().catch(err => { console.error('No se pudo inicializar la base:', err.message); process.exitCode=1; });
+module.exports = main;
+
+if (require.main === module) {
+  main().catch(error => {
+    console.error('No se pudo inicializar la base:', error.message);
+    process.exitCode = 1;
+  }).finally(() => pool.end());
+}

@@ -24,9 +24,22 @@ app.use('/api/proveedores', require('./routes/proveedorRoutes'));
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/auth', authRoutes);
 
-app.get('/health', (req, res) => res.json({ ok: true }));
+const pool = require('./config/db');
+app.get('/health', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  try {
+    await pool.query('SELECT 1 FROM usuarios LIMIT 1');
+    res.json({ok: true, database: 'connected'});
+  } catch {
+    res.status(503).json({ok: false, database: 'unavailable'});
+  }
+});
 app.use(express.static(path.join(__dirname, '../../SISTEMA-FRONTED')));
 
-app.listen(PORT, () => {
+require('./migrate')().then(() => app.listen(PORT, () => {
   console.log(`Servidor backend corriendo en el puerto ${PORT}`);
+ })).catch(async error => {
+  console.error('No se pudo preparar PostgreSQL:', error.message);
+  await pool.end();
+  process.exitCode = 1;
 });

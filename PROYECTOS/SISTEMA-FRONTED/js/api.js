@@ -21,7 +21,9 @@ async function customFetch(endpoint, options = {}) {
     };
 
     const response = await fetch(`${BASE_URL}${endpoint}`, config);
-    const data = await response.json();
+    const data = await response.json().catch(() => {
+        throw new Error('El servidor de ICA Market no respondió correctamente (HTTP ' + response.status + '). Abre la aplicación desde el servicio web de Render.');
+    });
 
     if (response.status === 401 && endpoint !== '/auth/login') {
         localStorage.clear();
