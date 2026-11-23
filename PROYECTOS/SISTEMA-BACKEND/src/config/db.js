@@ -20,4 +20,29 @@ if (onRender || renderExternal || process.env.PGSSL === 'true') {
   options.ssl = { minVersion: 'TLSv1.2', rejectUnauthorized: !renderInternal };
 }
 
-module.exports = new Pool(options);
+const { AsyncLocalStorage } = require('node:async_hooks');
+const actor = new AsyncLocalStorage();
+const pool = new Pool(options);
+
+// Las migraciones deben interpretar las fechas antiguas con la zona original del servidor.
+let zonaBase;
+async function connect() {
+  const client = await pool.connect();
+  try {
+    if (!zonaBase) zonaBase = (await client.query("SHOW TimeZone")).rows[0].TimeZone;
+    await client.query("SELECT set_config('icamarket.usuario', $1, false), set_config('TimeZone', $2, false)",
+      [String(actor.getStore() || ''), actor.getStore() ? 'America/Lima' : zonaBase]);
+    return client;
+  } catch (error) {
+    client.release(error);
+    throw error;
+  }
+}
+
+async function query(sql, values) {
+  const client = await connect();
+  try { return await client.query(sql, values); }
+  finally { client.release(); }
+}
+
+module.exports = { connect, query, actor, end: () => pool.end() };

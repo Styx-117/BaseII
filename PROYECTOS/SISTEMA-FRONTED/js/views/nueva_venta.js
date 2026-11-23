@@ -33,7 +33,7 @@ export async function renderNuevaVenta(container) {
                         
                         <div class="mb-3">
                             <label class="form-label small text-muted fw-bold text-primary"><i class="fas fa-search"></i> Buscar Producto</label>
-                            <input type="text" id="buscar-producto" class="form-control border-primary" placeholder="Digita el nombre para filtrar...">
+                            <input type="text" id="buscar-producto" class="form-control border-primary" placeholder="Nombre o código del producto">
                         </div>
 
                         <div class="mb-3">
@@ -115,8 +115,8 @@ export async function renderNuevaVenta(container) {
                     </div>
                     <div class="modal-body" id="area-impresion-comprobante">
                         <div class="text-center mb-3">
-                            <h5 class="fw-bold mb-0">BODEGA DON PEPITO</h5>
-                            <small class="text-muted">Ticket de Venta Electrónico</small>
+                            <h5 class="fw-bold mb-0">ICA Market</h5>
+                            <small class="text-muted">Constancia de venta</small>
                         </div>
                         <hr class="border-dashed">
                         <div class="row small mb-3">
@@ -166,18 +166,12 @@ export async function renderNuevaVenta(container) {
         
         selectProducto.innerHTML = '<option value="">Seleccione un producto...</option>';
         
-        const filtrados = productosDisponibles.filter(p => p.nombre.toLowerCase().includes(valorBusqueda));
-
-        if (filtrados.length === 0) {
-            selectProducto.innerHTML = '<option value="">No se encontraron coincidencias</option>';
-            return;
-        }
-
-        filtrados.forEach(p => {
-            if (p.stock_actual > 0) {
-                selectProducto.innerHTML += `<option value="${p.id}">${p.nombre} (Dispo: ${p.stock_actual})</option>`;
-            }
-        });
+        const filtrados = productosDisponibles.filter(p => p.stock_actual > 0 &&
+            (p.nombre.toLowerCase().includes(valorBusqueda) || String(p.id) === valorBusqueda.replace(/^#/, '')));
+        selectProducto.replaceChildren(new Option(filtrados.length ? 'Seleccione un producto…' : 'Sin coincidencias', ''));
+        for (const p of filtrados) selectProducto.add(new Option(p.nombre + ' · #' + p.id, p.id));
+        if (filtrados.length === 1) selectProducto.selectedIndex = 1;
+        selectProducto.dispatchEvent(new Event('change'));
     };
 
     // 2. Cambiar producto seleccionado (onchange)
@@ -192,7 +186,7 @@ export async function renderNuevaVenta(container) {
         if (producto) {
             inputPrecio.value = parseFloat(producto.precio).toFixed(2);
             inputCantidad.max = producto.stock_actual;
-            labelStock.innerHTML = `Stock disponible: <b class="${producto.stock_actual <= 5 ? 'text-danger' : 'text-success'}">${producto.stock_actual} unids.</b>`;
+            labelStock.innerHTML = `Stock disponible: <b class="${producto.stock_actual <= producto.stock_minimo ? 'text-danger' : 'text-success'}">${producto.stock_actual} unids.</b>`;
         } else {
             inputPrecio.value = '';
             inputCantidad.removeAttribute('max');
@@ -276,17 +270,17 @@ export async function renderNuevaVenta(container) {
             // Llenar el modal de comprobante electrónico con la respuesta
             document.getElementById('comp-id').innerText = res.venta_id || 'NUEVA';
             document.getElementById('comp-cliente').innerText = selectCliente.options[selectCliente.selectedIndex].text;
-            document.getElementById('comp-fecha').innerText = new Date().toLocaleString();
-            document.getElementById('comp-total').innerText = document.getElementById('total-carrito').innerText;
+            document.getElementById('comp-fecha').innerText = new Date(res.fecha).toLocaleString('es-PE');
+            document.getElementById('comp-total').innerText = 'S/ ' + Number(res.total).toFixed(2);
 
             const tbodyComp = document.getElementById('tabla-comprobante-productos');
-            tbodyComp.innerHTML = carrito.map(item => `
-                <tr>
-                    <td>${item.nombre}</td>
-                    <td class="text-center">x${item.cantidad}</td>
-                    <td class="text-end">S/ ${item.total_item.toFixed(2)}</td>
-                </tr>
-            `).join('');
+            tbodyComp.replaceChildren();
+            for (const item of res.productos) {
+                const row = tbodyComp.insertRow();
+                row.insertCell().textContent = item.nombre;
+                row.insertCell().textContent = item.cantidad;
+                row.insertCell().textContent = 'S/ ' + (Number(item.precio) * item.cantidad).toFixed(2);
+            }
 
             // Abrir modal de éxito
             const modalComprobante = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalComprobanteVenta'));
@@ -306,7 +300,8 @@ export async function renderNuevaVenta(container) {
     modalEl.addEventListener('hidden.bs.modal', async () => {
         carrito = [];
         actualizarVistaCarrito();
-        document.getElementById('venta-cliente').value = '';
+        const cliente = document.getElementById('venta-cliente');
+        cliente.selectedIndex = Array.from(cliente.options).findIndex(o => o.defaultSelected);
         document.getElementById('form-add-carrito').reset();
         document.getElementById('buscar-producto').value = '';
         document.getElementById('stock-disponible-label').innerText = 'Stock disponible: -';
@@ -354,7 +349,7 @@ function actualizarVistaCarrito() {
             <tr>
                 <td class="fw-bold text-dark">${item.nombre}</td>
                 <td class="text-end text-muted">S/ ${item.precio_unitario.toFixed(2)}</td>
-                <td class="text-center fw-bold bg-light" style="width: 80px;">${item.cantidad}</td>
+                <td class="text-center fw-bold bg-light" style="width: 95px;"><input class="form-control cantidad-item" aria-label="Cantidad en carrito" type="number" min="1" value="${item.cantidad}" data-index="${index}"></td>
                 <td class="text-end fw-bold text-primary">S/ ${item.total_item.toFixed(2)}</td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-link text-danger btn-quitar-item" data-index="${index}">
@@ -368,6 +363,18 @@ function actualizarVistaCarrito() {
     totalLabel.innerText = `S/ ${subtotalGeneral.toFixed(2)}`;
     btnProcesar.disabled = false;
 
+    tbody.querySelectorAll('.cantidad-item').forEach(input => {
+        input.onchange = () => {
+            const item = carrito[Number(input.dataset.index)];
+            const producto = productosDisponibles.find(p => p.id === item.producto_id);
+            const cantidad = Number(input.value);
+            if (Number.isInteger(cantidad) && cantidad > 0 && cantidad <= producto.stock_actual) {
+                item.cantidad = cantidad;
+                item.total_item = cantidad * item.precio_unitario;
+            } else alert('Ingresa una cantidad entre 1 y ' + producto.stock_actual);
+            actualizarVistaCarrito();
+        };
+    });
     // Asignar el borrado de elementos (onclick individual)
     document.querySelectorAll('.btn-quitar-item').forEach(btn => {
         btn.onclick = (e) => {
@@ -384,9 +391,11 @@ async function cargarClientesSelect() {
         const select = document.getElementById('venta-cliente');
         // Limpiamos opciones anteriores excepto la por defecto
         select.innerHTML = '<option value="">Seleccione un cliente...</option>';
-        clientes.forEach(c => {
-            select.innerHTML += `<option value="${c.id}">${c.nombre} (${c.documento || 'Sin Doc'})</option>`;
-        });
+        for (const cliente of clientes.filter(c => c.activo)) {
+            const option = new Option(cliente.nombre + ' (' + cliente.documento + ')', cliente.id);
+            option.defaultSelected = cliente.documento === '00000000';
+            select.add(option);
+        }
     } catch (err) {
         console.error("Error cargando clientes", err);
     }
@@ -400,7 +409,7 @@ async function cargarProductosSelect() {
         
         productosDisponibles.forEach(p => {
             if (p.stock_actual > 0) {
-                select.innerHTML += `<option value="${p.id}">${p.nombre} (Dispo: ${p.stock_actual})</option>`;
+                select.innerHTML += `<option value="${p.id}">${p.nombre} · #${p.id} (Dispo: ${p.stock_actual})</option>`;
             }
         });
     } catch (err) {

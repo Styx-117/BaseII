@@ -20,7 +20,7 @@ const verificarToken = async (req, res, next) => {
     const result = await pool.query('SELECT rol FROM usuarios WHERE id=$1 AND activo', [decoded.id]);
     if (!result.rowCount) return res.status(401).json({error: 'La cuenta está inactiva.'});
     req.user = { ...decoded, rol: result.rows[0].rol };
-    next();
+    pool.actor.run(decoded.id, next);
 };
 
 const verificarAdmin = (req, res, next) => {

@@ -44,11 +44,13 @@ const obtenerProductos = async (req, res) => {
 const crearProducto = async (req, res) => {
     const { nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, id_proveedor } = req.body;
     const imagen_url = req.file ? req.file.path : null;
+    const minimo = Number(req.body.stock_minimo ?? 5);
+    if (!Number.isSafeInteger(minimo) || minimo < 0 || minimo > 2147483647) return res.status(400).json({error:'Stock mínimo no válido.'});
 
     try {
         const result = await pool.query(
-            'INSERT INTO productos (nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, imagen_url, id_proveedor) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-            [nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, imagen_url, id_proveedor || null]
+            'INSERT INTO productos (nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, imagen_url, id_proveedor, stock_minimo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+            [nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, imagen_url, id_proveedor || null, minimo]
         );
         res.status(201).json(result.rows[0]);
     } catch (error) {
@@ -98,19 +100,21 @@ const actualizarProducto = async (req, res) => {
     const { nombre, descripcion, precio, stock_actual, categoria_id, etiquetas, id_proveedor } = req.body;
     
     const imagen_url = req.file ? req.file.path : null;
+    const minimo = Number(req.body.stock_minimo ?? 5);
+    if (!Number.isSafeInteger(minimo) || minimo < 0 || minimo > 2147483647) return res.status(400).json({error:'Stock mínimo no válido.'});
 
     try {
         let result;
         
         if (imagen_url) {
             result = await pool.query(
-                'UPDATE productos SET nombre = $1, descripcion = $2, precio = $3, categoria_id = $4, etiquetas = $5, imagen_url = $6, id_proveedor = $7, actualizado_por = $9 WHERE id = $8 RETURNING *',
-                [nombre, descripcion, precio, categoria_id, etiquetas, imagen_url, id_proveedor || null, id, req.user.id]
+                'UPDATE productos SET nombre = $1, descripcion = $2, precio = $3, categoria_id = $4, etiquetas = $5, imagen_url = $6, id_proveedor = $7, actualizado_por = $9, stock_minimo = coalesce($10,stock_minimo) WHERE id = $8 RETURNING *',
+                [nombre, descripcion, precio, categoria_id, etiquetas, imagen_url, id_proveedor || null, id, req.user.id, req.body.stock_minimo == null ? null : minimo]
             );
         } else {
             result = await pool.query(
-                'UPDATE productos SET nombre = $1, descripcion = $2, precio = $3, categoria_id = $4, etiquetas = $5, id_proveedor = $6, actualizado_por = $8 WHERE id = $7 RETURNING *',
-                [nombre, descripcion, precio, categoria_id, etiquetas, id_proveedor || null, id, req.user.id]
+                'UPDATE productos SET nombre = $1, descripcion = $2, precio = $3, categoria_id = $4, etiquetas = $5, id_proveedor = $6, actualizado_por = $8, stock_minimo = coalesce($9,stock_minimo) WHERE id = $7 RETURNING *',
+                [nombre, descripcion, precio, categoria_id, etiquetas, id_proveedor || null, id, req.user.id, req.body.stock_minimo == null ? null : minimo]
             );
         }
 

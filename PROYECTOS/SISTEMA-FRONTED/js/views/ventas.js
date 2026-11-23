@@ -1,7 +1,6 @@
 // js/views/ventas.js
 import { api } from '../api.js';
 import { getUser } from '../auth.js';
-import { renderNuevaVenta } from './nueva_venta.js';
 
 export async function renderVentas(container) {
     const user = getUser();
@@ -20,13 +19,13 @@ export async function renderVentas(container) {
     }
 
     const esAdmin = user.rol === 'ADMIN';
-    const esCajero = user.rol === 'CAJERO';
+    const esCajero = ['VENTAS','CAJERO'].includes(user.rol);
 
     container.innerHTML = `
         <div class="d-flex justify-content-between mb-4 align-items-center">
             <div>
                 <h3 class="mb-0"><i class="fas fa-file-invoice-dollar text-success me-2"></i> Historial de Ventas</h3>
-                ${esCajero ? '<small class="text-muted"><i class="fas fa-clock me-1"></i> Mostrando ventas recientes (últimos 3 días)</small>' : ''}
+                ${user.rol === 'CAJERO' ? '<small class="text-muted"><i class="fas fa-clock me-1"></i> Mostrando ventas recientes (últimos 3 días)</small>' : ''}
             </div>
             
             ${(esCajero || esAdmin) ? `
@@ -112,7 +111,7 @@ export async function renderVentas(container) {
         
         document.body.innerHTML = `
             <div style="padding: 20px; font-family: monospace; max-width: 350px; margin: auto;">
-                <h3 class="text-center fw-bold">BODEGA DON PEPITO</h3>
+                <h3 class="text-center fw-bold">ICA Market</h3>
                 <hr>
                 ${contenido}
                 <hr>
@@ -124,11 +123,7 @@ export async function renderVentas(container) {
         window.location.reload(); 
     });
 
-    if (esCajero) {
-        document.getElementById('btn-ir-nueva-venta').addEventListener('click', (e) => {
-            renderNuevaVenta(container);
-        });
-    }
+
 }
 
 async function cargarHistorialVentas(esAdmin) {
@@ -156,12 +151,12 @@ async function cargarHistorialVentas(esAdmin) {
                 <td>${v.cliente_nombre || 'Cliente General'}</td>
                 <td><span class="badge bg-info text-dark">${v.vendedor_nombre}</span></td>
                 <td class="fw-bold">S/ ${parseFloat(v.total).toFixed(2)}</td>
-                <td>${badgeEstado}</td>
+                <td>${v.es_demo ? 'Demo · ' : ''}${badgeEstado}</td>
                 <td>
                     <button class="btn btn-sm btn-outline-primary btn-ver-detalle" data-id="${v.id}">
                         <i class="fas fa-eye"></i> Detalle
                     </button>
-                    ${esAdmin && estado !== 'ANULADA' ? `
+                    ${esAdmin && !v.es_demo && estado !== 'ANULADA' ? `
                         <button class="btn btn-sm btn-outline-danger btn-anular-venta ms-1" data-id="${v.id}">
                             <i class="fas fa-times-circle"></i> Anular
                         </button>

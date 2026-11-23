@@ -38,7 +38,8 @@ async function customFetch(endpoint, options = {}) {
     });
 
     if (response.status === 401 && endpoint !== '/auth/login') {
-        localStorage.clear();
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
         window.location.reload();
         throw new Error('Sesión expirada. Por favor, inicia sesión de nuevo.');
     }

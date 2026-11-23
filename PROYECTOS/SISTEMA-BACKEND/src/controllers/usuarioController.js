@@ -27,7 +27,7 @@ const crearUsuario = async (req, res) => {
     if (!datos.nombre_completo || datos.nombre_completo.length > 255 || datos.email.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datos.email)) {
         return res.status(400).json({error: 'Ingresa un nombre y un correo válido.'});
     }
-    if (!['ADMIN','CAJERO','ALMACENERO'].includes(datos.rol)) return res.status(400).json({error: 'Selecciona un rol válido.'});
+    if (!['GERENCIA','ADMIN','VENTAS','CAJERO','ALMACENERO'].includes(datos.rol)) return res.status(400).json({error: 'Selecciona un rol válido.'});
     if (!datos.password) return res.status(400).json({error: 'Ingresa una contraseña para el empleado.'});
     if (datos.password && (typeof datos.password !== 'string' || datos.password.length < 6 || Buffer.byteLength(datos.password) > 72)) {
         return res.status(400).json({error: 'Usa al menos 6 caracteres y hasta 72 bytes para la contraseña.'});
@@ -73,7 +73,7 @@ const actualizarUsuario = async (req, res) => {
     if (!datos.nombre_completo || datos.nombre_completo.length > 255 || datos.email.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datos.email)) {
         return res.status(400).json({error: 'Ingresa un nombre y un correo válido.'});
     }
-    if (!['ADMIN','CAJERO','ALMACENERO'].includes(datos.rol)) return res.status(400).json({error: 'Selecciona un rol válido.'});
+    if (!['GERENCIA','ADMIN','VENTAS','CAJERO','ALMACENERO'].includes(datos.rol)) return res.status(400).json({error: 'Selecciona un rol válido.'});
     if (datos.password && (typeof datos.password !== 'string' || datos.password.length < 6 || Buffer.byteLength(datos.password) > 72)) {
         return res.status(400).json({error: 'Usa al menos 6 caracteres y hasta 72 bytes para la contraseña.'});
     }

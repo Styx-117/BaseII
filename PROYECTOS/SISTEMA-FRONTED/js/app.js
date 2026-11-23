@@ -1,3 +1,4 @@
+import { renderReportes } from './views/reportes.js';
 import { renderResumen } from './views/resumen.js';
 //app.js
 import { getUser, login } from './auth.js';
@@ -12,7 +13,25 @@ import { renderConfiguracion } from './views/configuracion.js';
 import { renderAuditoria } from './views/auditoria.js'; 
 import { renderNuevaVenta } from './views/nueva_venta.js'; 
 
+document.documentElement.dataset.bsTheme = localStorage.getItem('tema_sistema') === 'oscuro' ? 'dark' : 'light';
 const app = document.getElementById('app');
+
+function botonTema() {
+    const oscuro = document.documentElement.dataset.bsTheme === 'dark';
+    return `<button type="button" class="tema-rapido" aria-label="Cambiar tema de color" aria-pressed="${oscuro}"><span aria-hidden="true">${oscuro ? '☾' : '☀'}</span> ${oscuro ? 'Oscuro' : 'Claro'}</button>`;
+}
+
+app.addEventListener('click', event => {
+    const boton = event.target.closest('.tema-rapido');
+    if (!boton) return;
+    const oscuro = document.documentElement.dataset.bsTheme !== 'dark';
+    document.documentElement.dataset.bsTheme = oscuro ? 'dark' : 'light';
+    localStorage.setItem('tema_sistema', oscuro ? 'oscuro' : 'claro');
+    boton.setAttribute('aria-pressed', String(oscuro));
+    boton.innerHTML = `<span aria-hidden="true">${oscuro ? '☾' : '☀'}</span> ${oscuro ? 'Oscuro' : 'Claro'}`;
+    const control = document.getElementById('switch-tema');
+    if (control) control.checked = oscuro;
+});
 
 function router() {
     const user = getUser();
@@ -29,7 +48,7 @@ function renderLogin() {
     app.innerHTML = `
         <div class="login-screen d-flex justify-content-center align-items-center vh-100 bg-dark">
             <div class="card p-4 shadow" style="width: 350px;">
-                <div class="login-brand"><span class="brand-mark">i</span> ICA<span class="brand-accent">Market</span></div><h3 class="mb-2">Bienvenido de nuevo</h3><p class="text-muted mb-4">Ingresa para administrar tu tienda.</p>
+                ${botonTema()}<div class="login-brand"><span class="brand-mark">i</span> ICA<span class="brand-accent">Market</span></div><h3 class="mb-2">Bienvenido de nuevo</h3><p class="text-muted mb-4">Ingresa para administrar tu tienda.</p>
                 <form id="login-form">
                     <div class="mb-3">
                         <input type="email" id="email" class="form-control" aria-label="Correo electrónico" placeholder="Correo electrónico" autocomplete="username" required>
@@ -68,7 +87,7 @@ function renderDashboard(user) {
     const imagenUsuario = user.imagen_url || null;
 
     const esAdmin = user.rol === 'ADMIN';
-    const esCajero = user.rol === 'CAJERO';
+    const esCajero = ['VENTAS','CAJERO'].includes(user.rol);
     const esAlmacen = user.rol === 'ALMACENERO';
 
     app.innerHTML = `
@@ -117,6 +136,7 @@ function renderDashboard(user) {
                     ` : ''}
                     
 
+                    ${(esAdmin || user.rol === 'GERENCIA') ? '<li class="nav-item"><a class="nav-link" href="#reportes">Reportes e historial</a></li>' : ''}
                     <li class="nav-item mt-auto pt-5">
                         <button id="logout" class="btn btn-outline-light btn-sm w-100 mt-5">
                             <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
@@ -126,7 +146,8 @@ function renderDashboard(user) {
             </nav>
 
             <main class="flex-grow-1 p-4 overflow-auto">
-                <header class="d-flex justify-content-end mb-4">
+                <header class="barra-superior d-flex justify-content-end align-items-center gap-3 mb-4">
+                    ${botonTema()}
                     <div class="dropdown">
                         <div class="d-flex align-items-center dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; user-select: none;">
                             <span class="me-3">Bienvenido, <b>${user.nombre_completo || 'Administrador'}</b></span>
@@ -193,6 +214,12 @@ function renderDashboard(user) {
     });
 
     const routerDinamico = () => {
+        const modal = viewContent.querySelector('.modal.show');
+        if (modal && window.bootstrap) {
+            modal.addEventListener('hidden.bs.modal', routerDinamico, {once:true});
+            bootstrap.Modal.getInstance(modal)?.hide();
+            return;
+        }
         cerrarMenu();
         const hash = window.location.hash || '#dashboard';
         
@@ -202,14 +229,18 @@ function renderDashboard(user) {
             botonActivo.classList.add('active');
         }
 
-        if ((esAlmacen && ['#ventas','#nueva-venta','#clientes'].includes(hash)) ||
-            (esCajero && ['#movimientos','#proveedores','#inventario'].includes(hash))) {
+        if ((!esAdmin && !esCajero && ['#ventas','#nueva-venta','#clientes'].includes(hash)) ||
+            (!esAdmin && !esAlmacen && ['#movimientos','#proveedores','#inventario'].includes(hash))) {
             location.replace('#dashboard');
             return;
         }
         switch (hash) {
             case '#dashboard':
                 renderHomeCards();
+                break;
+            case '#reportes':
+                if (esAdmin || user.rol === 'GERENCIA') renderReportes(viewContent);
+                else renderHomeCards();
                 break;
             case '#ventas':
                 renderVentas(viewContent);
@@ -256,14 +287,16 @@ function renderDashboard(user) {
         e.preventDefault();
         window.onhashchange = null;
         history.replaceState(null, '', location.pathname);
-        localStorage.clear();
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
         router();
     });
 
     document.getElementById('logout')?.addEventListener('click', () => {
         window.onhashchange = null;
         history.replaceState(null, '', location.pathname);
-        localStorage.clear();
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
         router();
     });
 }

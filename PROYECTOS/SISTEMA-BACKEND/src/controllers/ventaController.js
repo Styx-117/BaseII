@@ -10,7 +10,7 @@ const obtenerVentas = async (req, res) => {
                 v.id, 
                 v.fecha_venta, 
                 v.total, 
-                v.estado,
+                v.estado, v.es_demo,
                 c.nombre AS cliente_nombre, 
                 u.nombre_completo AS vendedor_nombre
             FROM ventas v
@@ -19,13 +19,14 @@ const obtenerVentas = async (req, res) => {
             WHERE 1=1
         `;
 
+        if (usuarioRol === 'VENTAS') query += ' AND v.usuario_id = $1';
         if (usuarioRol === 'CAJERO') {
             query += ` AND v.fecha_venta >= CURRENT_DATE - INTERVAL '3 days'`;
         }
 
         query += ` ORDER BY v.id DESC`;
 
-        const result = await pool.query(query);
+        const result = await pool.query(query, usuarioRol === 'VENTAS' ? [req.user.id] : []);
         res.json(result.rows);
     } catch (error) {
         console.error("Error en obtenerVentas:", error);
@@ -52,9 +53,14 @@ const registrarVenta = async (req, res) => {
             const producto = result.rows[0];
             if (!producto || producto.stock_actual < cantidad) { const err = new Error(producto ? `Stock insuficiente para ${producto.nombre}` : 'Producto no disponible'); err.status=400; throw err; }
             totalCentimos += Math.round(Number(producto.precio)*100)*cantidad;
-            productos.push({id,cantidad,precio:producto.precio});
+            if (items.some(item => Number(item.producto_id) === id && item.precio_unitario != null && Number(item.precio_unitario) !== Number(producto.precio))) {
+                const error = new Error('El precio de ' + producto.nombre + ' cambió. Actualiza el carrito antes de cobrar.');
+                error.status = 409;
+                throw error;
+            }
+            productos.push({id,cantidad,precio:producto.precio,nombre:producto.nombre});
         }
-        const venta = await client.query('INSERT INTO ventas(cliente_id,usuario_id,total,metodo_pago) VALUES($1,$2,$3,$4) RETURNING id',[cliente_id || null,req.user.id,(totalCentimos/100).toFixed(2),metodo_pago]);
+        const venta = await client.query('INSERT INTO ventas(cliente_id,usuario_id,total,metodo_pago) VALUES($1,$2,$3,$4) RETURNING id, fecha_venta, total',[cliente_id || null,req.user.id,(totalCentimos/100).toFixed(2),metodo_pago]);
         const id = venta.rows[0].id;
         for (const producto of productos) {
             await client.query('INSERT INTO detalle_ventas(venta_id,producto_id,cantidad,precio_unitario) VALUES($1,$2,$3,$4)',[id,producto.id,producto.cantidad,producto.precio]);
@@ -62,7 +68,7 @@ const registrarVenta = async (req, res) => {
             await client.query("INSERT INTO movimientos_inventario(producto_id,usuario_id,tipo_movimiento,cantidad,motivo) VALUES($1,$2,'SALIDA',$3,$4)",[producto.id,req.user.id,producto.cantidad,`Venta POS #${id}`]);
         }
         await client.query('COMMIT');
-        res.status(201).json({mensaje:'Venta registrada y stock actualizado',venta_id:id});
+        res.status(201).json({mensaje:'Venta registrada y stock actualizado',venta_id:id, fecha:venta.rows[0].fecha_venta, total:venta.rows[0].total, productos});
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Error en venta:',error.message);
@@ -81,9 +87,10 @@ const obtenerVentaConId = async (req, res) => {
             FROM ventas v
             LEFT JOIN clientes c ON v.cliente_id = c.id
             JOIN usuarios u ON v.usuario_id = u.id
-            WHERE v.id = $1
+            WHERE v.id = $1 AND ($2::int IS NULL OR v.usuario_id=$2)
+                AND ($3 <> 'CAJERO' OR v.fecha_venta >= CURRENT_DATE - INTERVAL '3 days')
         `;
-        const ventaResult = await pool.query(ventaQuery, [id]);
+        const ventaResult = await pool.query(ventaQuery, [id, req.user.rol === 'VENTAS' ? req.user.id : null, req.user.rol]);
         
         if (ventaResult.rows.length === 0) {
             return res.status(404).json({ error: 'La boleta solicitada no existe' });
@@ -112,4 +119,31 @@ const obtenerVentaConId = async (req, res) => {
     }
 };
 
-module.exports = { obtenerVentas, registrarVenta, obtenerVentaConId };
+const anularVenta = async (req, res) => {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const venta = await client.query(
+            "SELECT estado, es_demo FROM ventas WHERE id=$1 FOR UPDATE",
+            [req.params.id]
+        );
+        if (!venta.rowCount || venta.rows[0].estado !== 'COMPLETADO' || venta.rows[0].es_demo) {
+            await client.query('ROLLBACK');
+            return res.status(409).json({error:'Solo se pueden anular ventas completadas y registradas en el POS.'});
+        }
+        const detalle = await client.query('SELECT producto_id,cantidad FROM detalle_ventas WHERE venta_id=$1 ORDER BY producto_id', [req.params.id]);
+        for (const item of detalle.rows) {
+            await client.query('UPDATE productos SET stock_actual=stock_actual+$1 WHERE id=$2',[item.cantidad,item.producto_id]);
+            await client.query("INSERT INTO movimientos_inventario(producto_id,usuario_id,tipo_movimiento,cantidad,motivo) VALUES($1,$2,'INGRESO',$3,$4)",
+                [item.producto_id,req.user.id,item.cantidad,'Anulación de venta #' + req.params.id]);
+        }
+        await client.query("UPDATE ventas SET estado='ANULADA' WHERE id=$1", [req.params.id]);
+        await client.query('COMMIT');
+        res.json({mensaje:'Venta anulada y existencias restituidas.'});
+    } catch (error) {
+        await client.query('ROLLBACK');
+        res.status(500).json({error:'No se pudo anular la venta.'});
+    } finally { client.release(); }
+};
+
+module.exports = { obtenerVentas, registrarVenta, anularVenta, obtenerVentaConId };

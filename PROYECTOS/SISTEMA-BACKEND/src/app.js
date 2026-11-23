@@ -21,6 +21,17 @@ app.use('/api/usuarios', require('./routes/usuarioRoutes'));
 app.use('/api/kardex', require('./routes/kardexRoutes'));
 app.use('/api/auditoria', verificarToken, verificarAdmin, require('./routes/auditoriaRoutes'));
 app.use('/api/proveedores', require('./routes/proveedorRoutes'));
+app.use('/api/reportes', require('./routes/reportes'));
+app.get('/api/conexiones/cloudinary', verificarToken, verificarAdmin, async (req,res) => {
+  const {cloudinary, configurado} = require('./config/cloudinary');
+  if (!configurado()) return res.json({estado:'Sin configurar'});
+  try {
+    const respuesta = await cloudinary.api.ping({timeout: 6000});
+    res.json({estado: respuesta.status === 'ok' ? 'Conectado' : 'No disponible'});
+  } catch {
+    res.json({estado:'No se pudo verificar la conexión'});
+  }
+});
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/auth', authRoutes);
 

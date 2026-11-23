@@ -9,6 +9,7 @@ export async function renderInventario(container) {
             </button>
         </div>
 
+        <details class="card p-3 mb-3"><summary>Registrar categoría</summary><form id="alta-cat" class="filtros-informe"><label>Nombre<input name="nombre" maxlength="100" class="form-control" required></label><button class="btn btn-primary">Registrar</button><span role="status"></span></form></details>
         <div class="card border-0 shadow-sm p-3 mb-4 bg-light">
             <div class="row g-3 align-items-center">
                 <div class="col-md-auto">
@@ -71,6 +72,7 @@ export async function renderInventario(container) {
 
                                     <label class="form-label small text-muted">Descripción</label>
                                     <textarea id="descripcion" class="form-control mb-2" rows="2" placeholder="Detalles del producto..."></textarea>
+                                    <label for="minimo">Stock mínimo de reposición</label><input class="form-control mb-3" id="minimo" type="number" min="0" value="5" required>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="mb-3 p-3 border rounded bg-light text-center">
@@ -114,7 +116,28 @@ export async function renderInventario(container) {
         </div>
     `;
 
+    container.querySelector('#alta-cat').onsubmit = async event => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        try {
+            const nombre = form.elements.nombre.value.trim();
+            if (!nombre) throw new Error('Ingresa el nombre de la categoría.');
+            const categoria = await api.post('/categorias', {nombre});
+            for (const id of ['categoria_id','filtro-categoria']) container.querySelector('#'+id).add(new Option(categoria.nombre,categoria.id));
+            form.reset();
+            form.querySelector('[role=status]').textContent = 'Categoría registrada.';
+        } catch(error) { form.querySelector('[role=status]').textContent = error.message; }
+    };
+    const tabla = container.querySelector('#tabla-productos');
     await Promise.all([cargarListasDesplegables(), cargarTabla(container)]);
+    if (!tabla.isConnected) return;
+    // Las ventas de otras cajas también modifican las existencias.
+    async function refrescarStock() {
+        if (!tabla.isConnected) return;
+        if (!document.hidden && !container.querySelector('.modal.show')) await cargarTabla(container, true);
+        if (tabla.isConnected) setTimeout(refrescarStock, 5000);
+    }
+    setTimeout(refrescarStock, 5000);
 
     document.getElementById('filtro-categoria').addEventListener('change', () => cargarTabla(container));
     document.getElementById('filtro-proveedor').addEventListener('change', () => cargarTabla(container));
@@ -151,6 +174,7 @@ export async function renderInventario(container) {
         const id = document.getElementById('producto-id').value;
 
         const formData = new FormData();
+        formData.append('stock_minimo', document.getElementById('minimo').value);
         formData.append('nombre', document.getElementById('nombre').value);
         formData.append('precio', document.getElementById('precio').value);
         formData.append('stock_actual', document.getElementById('stock').value);
@@ -206,10 +230,10 @@ async function cargarListasDesplegables() {
     }
 }
 
-async function cargarTabla(container) {
+async function cargarTabla(container, silenciosa = false) {
     try {
         const tbody = document.getElementById('tabla-productos');
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center"><i class="fas fa-spinner fa-spin"></i> Cargando...</td></tr>';
+        if (!silenciosa) tbody.innerHTML = '<tr><td colspan="7" class="text-center"><i class="fas fa-spinner fa-spin"></i> Cargando...</td></tr>';
 
         const catId = document.getElementById('filtro-categoria').value;
         const provId = document.getElementById('filtro-proveedor').value;
@@ -219,6 +243,8 @@ async function cargarTabla(container) {
         if (provId) endpoint += `proveedor_id=${provId}`;
 
         const productos = await api.get(endpoint);
+        if (!tbody.isConnected || catId !== container.querySelector('#filtro-categoria').value ||
+            provId !== container.querySelector('#filtro-proveedor').value) return;
         
         if (productos.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No se encontraron productos</td></tr>';
@@ -236,12 +262,12 @@ async function cargarTabla(container) {
                 <td><span class="badge bg-light text-dark border">${p.proveedor_nombre || '-'}</span></td>
                 <td class="fw-bold text-success">S/ ${parseFloat(p.precio).toFixed(2)}</td>
                 <td class="text-center">
-                    <span class="badge ${p.stock_actual <= 5 ? 'bg-danger' : 'bg-success'} fs-6">${p.stock_actual}</span>
+                    <span class="badge ${p.stock_actual <= p.stock_minimo ? 'bg-danger' : 'bg-success'} fs-6">${p.stock_actual}</span>
                 </td>
                 <td>
                     <button class="btn btn-sm btn-outline-primary btn-editar" 
                             data-id="${p.id}" data-nombre="${p.nombre}" 
-                            data-precio="${p.precio}" data-stock="${p.stock_actual}" 
+                            data-precio="${p.precio}" data-minimo="${p.stock_minimo}" data-stock="${p.stock_actual}"
                             data-cat="${p.categoria_id}" data-prov="${p.id_proveedor || ''}"
                             data-desc="${p.descripcion || ''}" data-img="${p.imagen_url || ''}">
                         <i class="fas fa-edit"></i>
@@ -260,6 +286,7 @@ async function cargarTabla(container) {
                 document.getElementById('precio').value = btn.dataset.precio;
                 document.getElementById('stock').readOnly = true;
             document.getElementById('stock').value = btn.dataset.stock;
+                document.getElementById('minimo').value = btn.dataset.minimo;
                 document.getElementById('categoria_id').value = btn.dataset.cat;
                 document.getElementById('proveedor_id').value = btn.dataset.prov; // <--- Cargar proveedor al editar
                 document.getElementById('descripcion').value = btn.dataset.desc;
@@ -292,6 +319,7 @@ async function cargarTabla(container) {
             });
         });
     } catch (err) {
-        document.getElementById('tabla-productos').innerHTML = `<tr><td colspan="7" class="text-danger text-center">Error al cargar datos</td></tr>`;
+        const tabla = container.querySelector('#tabla-productos');
+        if (tabla) tabla.innerHTML = `<tr><td colspan="7" class="text-danger text-center">Error al cargar datos</td></tr>`;
     }
 }

@@ -2,6 +2,8 @@ import { api } from '../api.js';
 
 const soles = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
 const enlaces = {
+    GERENCIA: ['#reportes','Ver reportes'],
+    VENTAS: ['#nueva-venta','Registrar venta'],
     ADMIN: ['#usuarios', 'Gestionar empleados'],
     CAJERO: ['#nueva-venta', 'Registrar venta'],
     ALMACENERO: ['#movimientos', 'Abrir Kardex']
@@ -17,10 +19,10 @@ export function renderResumen(container, rol) {
                 <h1>${comercial ? 'Resumen de ventas' : 'Resumen de inventario'}</h1></div>
                 <a href="${destino}" class="btn btn-light">${accion} →</a>
             </header>
-            ${comercial ? '<label class="periodo">Periodo <select class="form-select"><option value="7">Últimos 7 días</option><option value="30">Últimos 30 días</option></select></label>' : ''}
+            ${comercial ? '<label class="periodo">Periodo <select class="form-select"><option value="1">Hoy</option><option value="7">Últimos 7 días</option><option value="30">Últimos 30 días</option></select></label>' : ''}
             <div class="indicadores"></div>
             ${comercial ? '<section class="card p-4 mb-3"><h2>Ventas por día</h2><div class="serie"></div></section>' : ''}
-            <section class="card p-4"><h2>Reposición prioritaria</h2><p>Los 10 productos con menos existencias, hasta 5 unidades.</p><ul class="reposicion"></ul></section>
+            <section class="card p-4"><h2>Reposición prioritaria</h2><p>Los 10 productos con menos existencias, según su mínimo configurado.</p><ul class="reposicion"></ul></section>
             <div role="status"></div>
         </section>`;
     const panel = container.firstElementChild;
@@ -53,7 +55,8 @@ export function renderResumen(container, rol) {
                 return item;
             }));
             if (!lista.children.length) lista.textContent = 'Sin productos pendientes de reposición.';
-            estado.textContent = '';
+            const demo = data.grafica.reduce((n,d) => n + d.demostracion, 0);
+            estado.textContent = demo ? 'El periodo incluye ' + demo + ' ventas de demostración.' : '';
         } catch (error) {
             estado.textContent = 'No se pudo cargar el resumen. ' + error.message;
         } finally {

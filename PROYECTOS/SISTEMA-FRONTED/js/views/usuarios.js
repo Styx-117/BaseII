@@ -56,7 +56,7 @@ export async function renderUsuarios(container) {
                                         <div class="col-6 mb-3">
                                             <label class="form-label small text-muted">Rol en el Sistema</label>
                                             <select id="rol_usuario" class="form-select" required>
-                                                <option value="ADMIN">Administrador</option>
+                                                <option value="GERENCIA">Gerencia</option><option value="VENTAS">Ventas</option><option value="ADMIN">Administrador</option>
                                                 <option value="CAJERO">Cajero</option>
                                                 <option value="ALMACENERO">Almacenero</option>
                                             </select>
@@ -194,6 +194,8 @@ async function cargarTablaUsuarios() {
             let badgeRol = '';
             if (u.rol === 'ADMIN') badgeRol = '<span class="badge bg-danger">Administrador</span>';
             else if (u.rol === 'CAJERO') badgeRol = '<span class="badge bg-success">Cajero</span>';
+            else if (u.rol === 'GERENCIA') badgeRol = '<span class="badge bg-primary">Gerencia</span>';
+            else if (u.rol === 'VENTAS') badgeRol = '<span class="badge bg-success">Ventas</span>';
             else badgeRol = '<span class="badge bg-primary">Almacenero</span>';
 
             const esMujer = u.genero === 'F';

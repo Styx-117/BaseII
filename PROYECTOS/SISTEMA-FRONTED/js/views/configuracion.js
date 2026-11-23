@@ -1,4 +1,5 @@
-import { consultarConexion } from '../api.js';
+import { getUser } from "../auth.js";
+import { api, consultarConexion } from '../api.js';
 
 export function renderConfiguracion(container) {
     
@@ -31,7 +32,7 @@ export function renderConfiguracion(container) {
                         <li class="list-group-item bg-transparent px-0"><b>Versión:</b> 1.0.0 (Producción)</li>
                         <li class="list-group-item bg-transparent px-0"><b>Base de datos:</b> PostgreSQL · <span id="estado-conexion" role="status">Comprobando conexión…</span></li>
                         <li class="list-group-item bg-transparent px-0"><b>Servidor:</b> Node.js / Express</li>
-                        <li class="list-group-item bg-transparent px-0"><b>Desarrollado por:</b> Equipo BD</li>
+                        <li class="list-group-item bg-transparent px-0"><b>Imágenes:</b> <span id="estado-imagenes">Cloudinary</span></li>
                     </ul>
                 </div>
             </div>
@@ -45,15 +46,14 @@ export function renderConfiguracion(container) {
         estado.textContent = 'No se pudo verificar la conexión';
     });
 
-    document.getElementById('switch-tema').addEventListener('change', (e) => {
-        const activado = e.target.checked;
-        if (activado) {
-            localStorage.setItem('tema_sistema', 'oscuro');
-            document.body.style.backgroundColor = '#212529'; 
-            alert("Preferencia guardada. Recarga la página para aplicar el modo oscuro.");
-        } else {
-            localStorage.setItem('tema_sistema', 'claro');
-            document.body.style.backgroundColor = ''; 
+    if (getUser().rol === 'ADMIN') {
+        const imagenes = container.querySelector('#estado-imagenes');
+        api.get('/conexiones/cloudinary').then(r => imagenes.textContent = 'Cloudinary · ' + r.estado)
+            .catch(() => imagenes.textContent = 'Cloudinary · Error de conexión');
+    }
+    container.querySelector('#switch-tema').onchange = event => {
+        if (event.target.checked !== (document.documentElement.dataset.bsTheme === 'dark')) {
+            document.querySelector('.tema-rapido').click();
         }
-    });
+    };
 }
