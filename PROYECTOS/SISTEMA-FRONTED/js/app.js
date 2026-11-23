@@ -78,7 +78,8 @@ function renderDashboard(user) {
                     <h4><span class="brand-mark">i</span> ICA<span class="brand-accent">Market</span></h4><small>VENTAS · INVENTARIO</small>
                 </div>
 
-                <ul class="nav flex-column">
+                <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="menu-principal">Menú <span aria-hidden="true">☰</span></button>
+                <ul id="menu-principal" class="nav flex-column">
                     <li class="nav-item">
                         <a href="#dashboard" class="nav-link active">
                             <i class="fas fa-chart-pie me-2"></i> Estadísticas
@@ -87,7 +88,7 @@ function renderDashboard(user) {
 
                     ${(esAdmin || esCajero) ? `
                     <li class="nav-item mt-3">
-                        <a href="#" class="nav-link text-muted small text-uppercase fw-bold">Comercial</a>
+                        <span class="nav-group">Comercial</span>
                         <ul class="nav flex-column ps-3 mt-2">
                             <li><a href="#ventas" class="nav-link"><span class="dot bg-success"></span> Ventas</a></li>
                             <li><a href="#clientes" class="nav-link"><span class="dot bg-warning"></span> Clientes</a></li>
@@ -97,7 +98,7 @@ function renderDashboard(user) {
 
                     ${(esAdmin || esAlmacen) ? `
                     <li class="nav-item mt-3">
-                        <a href="#" class="nav-link text-muted small text-uppercase fw-bold">Logística</a>
+                        <span class="nav-group">Logística</span>
                         <ul class="nav flex-column ps-3 mt-2">
                             <li><a href="#inventario" class="nav-link"><span class="dot bg-primary"></span> Productos</a></li>
                             <li><a href="#movimientos" class="nav-link"><span class="dot bg-info"></span> Kardex </a></li>
@@ -107,7 +108,7 @@ function renderDashboard(user) {
 
                     ${esAdmin ? `
                     <li class="nav-item mt-3">
-                        <a href="#" class="nav-link text-muted small text-uppercase fw-bold">Administración</a>
+                        <span class="nav-group">Administración</span>
                         <ul class="nav flex-column ps-3 mt-2">
                             <li><a href="#usuarios" class="nav-link"><span class="dot bg-danger"></span> Usuarios</a></li>
                             <li><a href="#auditoria" class="nav-link"><span class="dot bg-dark"></span> Historial de Precios</a></li>
@@ -176,7 +177,23 @@ function renderDashboard(user) {
 
     const viewContent = document.getElementById('view-content');
 
+    const menuToggle = app.querySelector('.menu-toggle');
+    const cerrarMenu = () => menuToggle.setAttribute('aria-expanded', 'false');
+    menuToggle.onclick = () => menuToggle.setAttribute('aria-expanded',
+        String(menuToggle.getAttribute('aria-expanded') !== 'true'));
+    const nav = app.querySelector('.sidebar');
+    nav.addEventListener('click', event => {
+        if (event.target.closest('a[href]')) cerrarMenu();
+    });
+    nav.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && menuToggle.getAttribute('aria-expanded') === 'true') {
+            cerrarMenu();
+            menuToggle.focus();
+        }
+    });
+
     const routerDinamico = () => {
+        cerrarMenu();
         const hash = window.location.hash || '#dashboard';
         
         document.querySelectorAll('.sidebar .nav-link').forEach(link => link.classList.remove('active'));

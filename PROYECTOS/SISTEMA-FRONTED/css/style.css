@@ -21,3 +21,38 @@
 .kardex-filtros { flex-wrap:wrap }.kardex-filtros label:first-child { flex:1;min-width:14rem }
 
 @media (max-width:768px) { #app > .login-screen { display:flex!important;min-height:100dvh } }
+
+/* Navigation and dashboard layout */
+.menu-toggle { display: none; }
+.nav-group { display: block; padding: .3rem .8rem; color: #bfd6cb; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
+.sidebar .nav-link.active { box-shadow: inset 3px 0 #ffa676; }
+main { min-width: 0; }
+#view-content { max-width: 1440px; margin-inline: auto; }
+.panel-cabecera {
+  background: radial-gradient(ellipse at 85% 0, #32765e, transparent 58%), #173e35;
+  box-shadow: 0 8px 24px #1a422513;
+}
+.indicadores article { border-top: 3px solid #3f8367; }
+.indicadores article:last-child { border-top-color: #e88b52; }
+.btn:focus-visible, .sidebar a:focus-visible, .menu-toggle:focus-visible { outline: 3px solid #db945c; outline-offset: 3px; }
+@media (prefers-reduced-motion: no-preference) {
+  .btn, .sidebar a { transition: background-color .18s, box-shadow .18s, transform .18s; }
+  .btn:active { transform: translateY(1px); }
+  #view-content > :first-child, .login-screen .card { animation: vista-entrada .22s ease-out both; }
+  .dia i { transform-origin: left; animation: dibujar-barra .32s ease-out both; }
+  @keyframes vista-entrada { from { opacity: .3; translate: 0 6px; } to { opacity: 1; translate: 0 0; } }
+  @keyframes dibujar-barra { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+}
+@media (max-width: 768px) {
+  .sidebar { display: grid; grid-template-columns: 1fr auto; align-items: center; }
+  .sidebar .brand-logo h4 { margin: 0; }
+  .menu-toggle { display: inline-flex; align-items: center; gap: .55rem; min-height: 44px; padding: .5rem .85rem; border: 1px solid #87ac99; border-radius: .7rem; background: transparent; color: white; }
+  .menu-toggle + #menu-principal { display: none; grid-column: 1 / -1; }
+  .menu-toggle[aria-expanded="true"] + #menu-principal { display: grid; gap: .65rem; margin-top: 1rem; }
+  .sidebar .nav-link { min-height: 44px; }
+  #view-content > .d-flex { gap: .65rem; flex-wrap: wrap; }
+  #view-content .card:has(>table) { overflow-x: auto; }
+  .indicadores { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .indicadores article:first-child { grid-column: 1 / -1; }
+  .panel-cabecera { gap: .8rem; }
+}
